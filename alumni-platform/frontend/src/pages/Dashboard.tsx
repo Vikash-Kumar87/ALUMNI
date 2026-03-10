@@ -220,7 +220,7 @@ const Dashboard: React.FC = () => {
           {aiFeatures.map(({ to, icon: Icon, label, desc, gradient }, i) => (
             <Link key={to} to={to}
               className="card-spotlight group animate-on-scroll hover:scale-105 hover:-translate-y-2 hover:shadow-2xl transition-all duration-400 rounded-2xl border border-white/60 p-6 shadow-lg"
-            style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }} style={{ transitionDelay: `${i * 100}ms` }}>
+              style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)', transitionDelay: `${i * 100}ms` }}>
               <div className={`icon-box w-11 h-11 bg-gradient-to-br ${gradient} mb-3`}>
                 <Icon className="w-5 h-5 text-white" />
               </div>
