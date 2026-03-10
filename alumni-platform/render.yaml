@@ -4,7 +4,7 @@ services:
     name: alumni-platform-backend
     env: node
     plan: free
-    rootDir: backend
+    rootDir: alumni-platform/backend
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /health
@@ -36,7 +36,7 @@ services:
   - type: web
     name: alumni-platform-frontend
     env: static
-    rootDir: frontend
+    rootDir: alumni-platform/frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
