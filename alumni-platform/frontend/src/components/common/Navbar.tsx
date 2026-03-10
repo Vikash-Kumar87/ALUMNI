@@ -109,8 +109,8 @@ const Navbar: React.FC = () => {
     <>
       <nav className={`sticky top-0 z-50 transition-all duration-400 relative ${
         scrolled
-          ? 'bg-white/90 backdrop-blur-2xl shadow-soft border-b border-gray-100/60'
-          : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
+          ? 'bg-indigo-950/95 backdrop-blur-2xl shadow-soft border-b border-white/10'
+          : 'bg-gradient-to-r from-indigo-950 to-violet-950 backdrop-blur-md border-b border-white/10'
       }`}>
         {/* Animated gradient bottom border */}
         <div className="navbar-color-line" />
@@ -121,7 +121,7 @@ const Navbar: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow transition-all duration-300 group-hover:scale-110 group-hover:shadow-glow-md animate-breathe">
                 <FiAward className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold hidden sm:block tracking-tight text-gradient-static">AlumniConnect</span>
+              <span className="font-bold hidden sm:block tracking-tight text-white">AlumniConnect</span>
             </Link>
 
             {/* Desktop nav */}
@@ -133,8 +133,8 @@ const Navbar: React.FC = () => {
                     to={to}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap relative ${
                       isActive(to)
-                        ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700 shadow-sm'
-                        : 'text-gray-500 hover:bg-indigo-50 hover:text-indigo-600'
+                        ? 'bg-white/15 text-white shadow-sm'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <Icon className={`w-4 h-4 transition-transform duration-200 ${isActive(to) ? 'scale-110 text-indigo-600' : ''}`} />
@@ -148,7 +148,7 @@ const Navbar: React.FC = () => {
                   <Link
                     to="/admin"
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                      isActive('/admin') ? 'bg-rose-50 text-rose-700' : 'text-gray-500 hover:bg-rose-50 hover:text-rose-700'
+                      isActive('/admin') ? 'bg-rose-500/20 text-rose-400' : 'text-white/70 hover:bg-rose-500/20 hover:text-rose-400'
                     }`}
                   >
                     <FiShield className="w-4 h-4" />
@@ -167,7 +167,7 @@ const Navbar: React.FC = () => {
                     <button
                       onClick={() => setNotifOpen(!notifOpen)}
                       className={`relative p-2 rounded-xl transition-all duration-200 ${
-                        notifOpen ? 'bg-primary-50 text-primary-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                        notifOpen ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
                       }`}
                       aria-label="Notifications"
                     >
@@ -234,7 +234,7 @@ const Navbar: React.FC = () => {
                   <div className="relative">
                     <button
                       onClick={() => setProfileOpen(!profileOpen)}
-                      className={`flex items-center gap-2 p-1.5 rounded-xl transition-all ${profileOpen ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
+                      className={`flex items-center gap-2 p-1.5 rounded-xl transition-all ${profileOpen ? 'bg-white/15' : 'hover:bg-white/10'}`}
                     >
                       {userProfile?.avatar ? (
                         <img src={userProfile.avatar} alt="" className="w-8 h-8 rounded-xl object-cover ring-2 ring-white" />
@@ -245,7 +245,7 @@ const Navbar: React.FC = () => {
                           </span>
                         </div>
                       )}
-                      <span className="hidden lg:block text-sm font-semibold text-gray-700 max-w-[100px] truncate">
+                      <span className="hidden lg:block text-sm font-semibold text-white/90 max-w-[100px] truncate">
                         {userProfile?.name?.split(' ')[0] || 'User'}
                       </span>
                     </button>
@@ -279,14 +279,14 @@ const Navbar: React.FC = () => {
                   {/* Mobile menu toggle */}
                   <button
                     onClick={() => setMobileOpen(!mobileOpen)}
-                    className="md:hidden p-2 text-gray-400 hover:text-gray-700 rounded-xl hover:bg-gray-100 transition-all"
+                    className="md:hidden p-2 text-white/60 hover:text-white rounded-xl hover:bg-white/10 transition-all"
                   >
                     {mobileOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
                   </button>
                 </>
               ) : (
                 <div className="flex gap-2">
-                  <Link to="/login" className="text-sm font-semibold px-4 py-2 rounded-xl transition-all duration-200 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-indigo-100 hover:border-indigo-200">Sign In</Link>
+                  <Link to="/login" className="text-sm font-semibold px-4 py-2 rounded-xl transition-all duration-200 text-white hover:text-white hover:bg-white/10 border border-white/20 hover:border-white/30">Sign In</Link>
                   <Link to="/signup" className="btn-gradient btn-gradient-animated text-sm">Get Started</Link>
                 </div>
               )}
@@ -296,14 +296,14 @@ const Navbar: React.FC = () => {
 
         {/* Mobile nav */}
         {mobileOpen && currentUser && (
-          <div className="md:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl animate-fade-in-down px-3 py-2 space-y-0.5">
+          <div className="md:hidden border-t border-white/10 bg-indigo-950/95 backdrop-blur-xl animate-fade-in-down px-3 py-2 space-y-0.5">
             {navLinks.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all ${
-                  isActive(to) ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  isActive(to) ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <Icon className="w-4 h-4" />{label}
@@ -311,12 +311,12 @@ const Navbar: React.FC = () => {
             ))}
             {userProfile?.role === 'admin' && (
               <Link to="/admin" onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-rose-600 hover:bg-rose-50 transition-all">
+                className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-rose-400 hover:bg-rose-500/20 transition-all">
                 <FiShield className="w-4 h-4" />Admin
               </Link>
             )}
-            <div className="border-t border-gray-100 pt-2 mt-2">
-              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+            <div className="border-t border-white/10 pt-2 mt-2">
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-rose-400 hover:bg-rose-500/20 rounded-xl transition-all">
                 <FiLogOut className="w-4 h-4" />Sign Out
               </button>
             </div>

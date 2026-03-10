@@ -157,7 +157,7 @@
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
   }
   .bg-gradient-hero {
-    background: linear-gradient(160deg, #f8faff 0%, #eef2ff 40%, #f0fdf4 100%);
+    background: radial-gradient(ellipse 80% 60% at 70% 100%, #3b1fa8 0%, #1e1b4b 40%, #0d0b1e 100%);
   }
 
   /* ─── Glass effect ─── */
