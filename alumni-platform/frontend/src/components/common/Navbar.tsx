@@ -107,19 +107,21 @@ const Navbar: React.FC = () => {
 
   return (
     <>
-      <nav className={`sticky top-0 z-50 transition-all duration-400 ${
+      <nav className={`sticky top-0 z-50 transition-all duration-400 relative ${
         scrolled
-          ? 'bg-white/90 backdrop-blur-2xl shadow-soft border-b border-gray-100/80'
-          : 'bg-white border-b border-gray-100'
+          ? 'bg-white/90 backdrop-blur-2xl shadow-soft border-b border-gray-100/60'
+          : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
       }`}>
+        {/* Animated gradient bottom border */}
+        <div className="navbar-color-line" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow transition-all duration-300 group-hover:scale-110 group-hover:shadow-glow-md">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow transition-all duration-300 group-hover:scale-110 group-hover:shadow-glow-md animate-breathe">
                 <FiAward className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-gray-900 hidden sm:block tracking-tight">AlumniConnect</span>
+              <span className="font-bold hidden sm:block tracking-tight text-gradient-static">AlumniConnect</span>
             </Link>
 
             {/* Desktop nav */}
@@ -131,14 +133,14 @@ const Navbar: React.FC = () => {
                     to={to}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap relative ${
                       isActive(to)
-                        ? 'bg-primary-50 text-primary-700'
-                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700 shadow-sm'
+                        : 'text-gray-500 hover:bg-indigo-50 hover:text-indigo-600'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 transition-transform duration-200 ${isActive(to) ? 'scale-110' : ''}`} />
+                    <Icon className={`w-4 h-4 transition-transform duration-200 ${isActive(to) ? 'scale-110 text-indigo-600' : ''}`} />
                     <span className="hidden lg:block">{label}</span>
                     {isActive(to) && (
-                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary-500 rounded-full" />
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#4f46e5,#7c3aed)' }} />
                     )}
                   </Link>
                 ))}
@@ -284,8 +286,8 @@ const Navbar: React.FC = () => {
                 </>
               ) : (
                 <div className="flex gap-2">
-                  <Link to="/login" className="btn-ghost text-sm">Sign In</Link>
-                  <Link to="/signup" className="btn-gradient text-sm">Get Started</Link>
+                  <Link to="/login" className="text-sm font-semibold px-4 py-2 rounded-xl transition-all duration-200 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-indigo-100 hover:border-indigo-200">Sign In</Link>
+                  <Link to="/signup" className="btn-gradient btn-gradient-animated text-sm">Get Started</Link>
                 </div>
               )}
             </div>

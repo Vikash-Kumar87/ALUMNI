@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   FiUsers, FiBriefcase, FiMessageCircle, FiAward, FiArrowRight,
   FiCheckCircle, FiStar, FiZap, FiBook, FiTarget, FiCode,
-  FiTrendingUp, FiShield, FiGlobe
+  FiTrendingUp, FiShield, FiGlobe, FiMenu, FiX
 } from 'react-icons/fi';
 
 const FEATURES = [
@@ -77,6 +77,7 @@ const TESTIMONIALS = [
 const LandingPage: React.FC = () => {
   const { currentUser } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -102,37 +103,125 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
-      {/* Navbar */}
-      <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-100/80' : 'bg-transparent'}`}>
+      {/* ── Navbar ── */}
+      <nav className={`sticky top-0 z-50 transition-all duration-500 relative ${scrolled ? 'bg-white/90 backdrop-blur-2xl shadow-md border-b border-indigo-100/60' : 'bg-white/70 backdrop-blur-md border-b border-transparent'}`}>
+        {/* Animated rainbow bottom line */}
+        <div className="navbar-color-line" />
+
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow">
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow animate-breathe">
               <FiAward className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-lg text-gray-900 tracking-tight hidden min-[380px]:block">AlumniConnect</span>
+            <span className="font-extrabold text-lg tracking-tight hidden min-[380px]:block text-gradient-static">AlumniConnect</span>
           </div>
+
+          {/* Desktop links */}
           <div className="hidden sm:flex items-center gap-1">
-            {['Features', 'How it works', 'Reviews'].map((item, i) => (
-              <a key={item} href={`#${['features','how-it-works','testimonials'][i]}`}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all duration-200 font-medium">
-                {item}
+            {[
+              { label: 'Features', href: '#features' },
+              { label: 'How it works', href: '#how-it-works' },
+              { label: 'Reviews', href: '#testimonials' },
+            ].map(({ label, href }) => (
+              <a key={label} href={href}
+                className="relative px-4 py-2 text-sm font-semibold text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200 group">
+                {label}
+                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-0 group-hover:w-5 h-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300" />
               </a>
             ))}
           </div>
+
+          {/* Right: CTA + hamburger */}
           <div className="flex items-center gap-2">
             {currentUser ? (
-              <Link to="/dashboard" className="btn-gradient text-sm"><span className="hidden sm:inline">Dashboard </span><span className="sm:hidden">Go </span><FiArrowRight className="w-3.5 h-3.5" /></Link>
+              <Link to="/dashboard" className="btn-gradient btn-gradient-animated text-sm">
+                <span className="hidden sm:inline">Dashboard </span><span className="sm:hidden">Go </span><FiArrowRight className="w-3.5 h-3.5" />
+              </Link>
             ) : (
               <>
-                <Link to="/login" className="hidden sm:block text-sm text-gray-600 hover:text-gray-900 font-medium px-4 py-2 hover:bg-gray-100 rounded-xl transition-all">Log in</Link>
-                <Link to="/signup" className="btn-gradient text-sm"><span className="hidden sm:inline">Get Started </span><span className="sm:hidden">Start </span><FiArrowRight className="w-3.5 h-3.5" /></Link>
+                <Link to="/login" className="hidden sm:block text-sm font-semibold px-4 py-2 rounded-xl transition-all duration-200 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-indigo-100 hover:border-indigo-300">
+                  Log in
+                </Link>
+                <Link to="/signup" className="btn-gradient btn-gradient-animated text-sm">
+                  <span className="hidden sm:inline">Get Started </span><span className="sm:hidden">Start </span><FiArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </>
             )}
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="sm:hidden p-2 rounded-xl text-indigo-600 hover:bg-indigo-50 transition-all"
+              aria-label="Open menu"
+            >
+              <FiMenu className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* ── Mobile Sidebar ── */}
+      {/* Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm sm:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      {/* Drawer */}
+      <div className={`fixed top-0 right-0 h-full w-72 z-[60] sm:hidden flex flex-col transition-transform duration-300 ease-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ background: 'linear-gradient(160deg,#eef2ff 0%,#f5f3ff 50%,#ecfdf5 100%)' }}>
+        {/* Sidebar header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow">
+              <FiAward className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-extrabold text-gradient-static">AlumniConnect</span>
+          </div>
+          <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-xl text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+            <FiX className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Nav links */}
+        <nav className="flex flex-col gap-1 px-4 pt-5 flex-1">
+          {[
+            { label: 'Features', href: '#features', color: 'from-indigo-500 to-violet-600' },
+            { label: 'How it works', href: '#how-it-works', color: 'from-violet-500 to-purple-600' },
+            { label: 'Reviews', href: '#testimonials', color: 'from-emerald-500 to-teal-600' },
+          ].map(({ label, href, color }) => (
+            <a key={label} href={href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 hover:text-indigo-700 hover:bg-white/70 transition-all duration-200 group">
+              <span className={`w-2 h-2 rounded-full bg-gradient-to-br ${color} group-hover:scale-125 transition-transform`} />
+              {label}
+              <FiArrowRight className="w-3.5 h-3.5 ml-auto text-gray-300 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+            </a>
+          ))}
+        </nav>
+
+        {/* Bottom CTA */}
+        <div className="px-4 pb-8 pt-4 border-t border-indigo-100 flex flex-col gap-3">
+          {currentUser ? (
+            <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}
+              className="btn-gradient btn-gradient-animated w-full justify-center py-3 text-sm">
+              Go to Dashboard <FiArrowRight className="w-4 h-4" />
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-3 text-sm font-semibold rounded-2xl border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all">
+                Log in
+              </Link>
+              <Link to="/signup" onClick={() => setMobileMenuOpen(false)}
+                className="btn-gradient btn-gradient-animated w-full justify-center py-3 text-sm">
+                Get Started <FiArrowRight className="w-4 h-4" />
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
       <section className="relative overflow-hidden bg-gradient-hero pt-16 pb-24 lg:pt-24 lg:pb-32">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl bg-gradient-to-br from-primary-400 to-violet-500 aurora-blob" />
