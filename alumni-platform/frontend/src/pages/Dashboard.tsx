@@ -92,7 +92,57 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+    <div className="relative min-h-screen overflow-hidden">
+      {/* ── Animated aurora background blobs ── */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        {/* Base gradient */}
+        <div className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(160deg, #eef2ff 0%, #f5f3ff 30%, #ecfdf5 60%, #eff6ff 100%)',
+          }}
+        />
+        {/* Blob 1 — indigo/violet top-left */}
+        <div className="aurora-blob w-[600px] h-[600px] -top-32 -left-32 opacity-40"
+          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.55) 0%, rgba(139,92,246,0.3) 50%, transparent 70%)' }}
+        />
+        {/* Blob 2 — emerald bottom-right */}
+        <div className="aurora-blob-2 w-[500px] h-[500px] -bottom-24 -right-24 opacity-35"
+          style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.5) 0%, rgba(6,182,212,0.25) 50%, transparent 70%)' }}
+        />
+        {/* Blob 3 — pink center-top */}
+        <div className="aurora-blob w-[400px] h-[400px] top-1/4 left-1/2 -translate-x-1/2 opacity-25"
+          style={{
+            background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, rgba(167,139,250,0.2) 50%, transparent 70%)',
+            animationDelay: '7s',
+            animationDuration: '20s',
+          }}
+        />
+        {/* Blob 4 — cyan bottom-left */}
+        <div className="aurora-blob-2 w-[350px] h-[350px] bottom-1/3 left-10 opacity-25"
+          style={{
+            background: 'radial-gradient(circle, rgba(6,182,212,0.45) 0%, rgba(99,102,241,0.2) 50%, transparent 70%)',
+            animationDelay: '2s',
+          }}
+        />
+        {/* Blob 5 — amber top-right */}
+        <div className="aurora-blob w-[300px] h-[300px] top-10 right-20 opacity-20"
+          style={{
+            background: 'radial-gradient(circle, rgba(245,158,11,0.4) 0%, rgba(234,88,12,0.15) 50%, transparent 70%)',
+            animationDelay: '10s',
+            animationDuration: '16s',
+          }}
+        />
+        {/* Subtle grid overlay */}
+        <div className="absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(99,102,241,1) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,1) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
+      </div>
+
+      {/* ── Page content ── */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
       {/* Header */}
       <div className="page-hero mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -111,14 +161,17 @@ const Dashboard: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {statCards.map(({ label, value, icon: Icon, gradient, bg, color }, i) => (
-          <div key={label} className="count-card animate-on-scroll" style={{ transitionDelay: `${i * 100}ms` }}>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className={`icon-box w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br ${gradient} flex-shrink-0`}>
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xl sm:text-2xl font-extrabold text-gray-900">{value}</p>
-                <p className="text-xs text-gray-500 font-medium leading-tight">{label}</p>
+          <div key={label} className="animate-on-scroll" style={{ transitionDelay: `${i * 100}ms` }}>
+            <div className="rounded-2xl border border-white/60 p-4 sm:p-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+              style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }}>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className={`icon-box w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br ${gradient} flex-shrink-0`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl sm:text-2xl font-extrabold text-gray-900">{value}</p>
+                  <p className="text-xs text-gray-500 font-medium leading-tight">{label}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -127,14 +180,14 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Charts */}
-        <div className="card lg:col-span-2">
+        <div className="rounded-2xl border border-white/60 p-6 shadow-lg transition-all duration-300 lg:col-span-2" style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-2 h-6 bg-gradient-to-b from-primary-500 to-violet-600 rounded-full" />
             <h3 className="font-bold text-gray-900">Growth Overview</h3>
           </div>
           <Bar data={barData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }} />
         </div>
-        <div className="card">
+        <div className="rounded-2xl border border-white/60 p-6 shadow-lg transition-all duration-300" style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-2 h-6 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full" />
             <h3 className="font-bold text-gray-900">User Distribution</h3>
@@ -166,7 +219,8 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {aiFeatures.map(({ to, icon: Icon, label, desc, gradient }, i) => (
             <Link key={to} to={to}
-              className="card-hover-glow card-spotlight group animate-on-scroll hover:scale-105 hover:-translate-y-2 hover:shadow-2xl transition-all duration-400" style={{ transitionDelay: `${i * 100}ms` }}>
+              className="card-spotlight group animate-on-scroll hover:scale-105 hover:-translate-y-2 hover:shadow-2xl transition-all duration-400 rounded-2xl border border-white/60 p-6 shadow-lg"
+            style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }} style={{ transitionDelay: `${i * 100}ms` }}>
               <div className={`icon-box w-11 h-11 bg-gradient-to-br ${gradient} mb-3`}>
                 <Icon className="w-5 h-5 text-white" />
               </div>
@@ -180,7 +234,7 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Recent Jobs */}
-        <div className="card">
+        <div className="rounded-2xl border border-white/60 p-6 shadow-lg" style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }}>
           <div className="flex justify-between items-center mb-5">
             <div className="flex items-center gap-2">
               <div className="w-2 h-5 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full" />
@@ -212,7 +266,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Recent Discussions */}
-        <div className="card">
+        <div className="rounded-2xl border border-white/60 p-6 shadow-lg" style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }}>
           <div className="flex justify-between items-center mb-5">
             <div className="flex items-center gap-2">
               <div className="w-2 h-5 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full" />
@@ -243,7 +297,7 @@ const Dashboard: React.FC = () => {
 
       {/* Mentorship requests */}
       {mentorshipRequests.length > 0 && (
-        <div className="card mt-6">
+        <div className="rounded-2xl border border-white/60 p-6 shadow-lg mt-6" style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px)' }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-2 h-5 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full" />
             <h3 className="font-bold text-gray-900">Mentorship Requests</h3>
@@ -260,6 +314,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
