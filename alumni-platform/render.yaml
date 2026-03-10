@@ -32,9 +32,9 @@ services:
       - key: GROQ_API_KEY
         sync: false
 
+staticSites:
   # ── Frontend: Static Site ─────────────────────────────────────────────────
-  - type: static
-    name: alumni-platform-frontend
+  - name: alumni-platform-frontend
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
@@ -63,3 +63,4 @@ services:
         sync: false
       - key: VITE_FIREBASE_DATABASE_URL
         sync: false
+
