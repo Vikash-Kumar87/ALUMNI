@@ -32,9 +32,10 @@ services:
       - key: GROQ_API_KEY
         sync: false
 
-staticSites:
   # ── Frontend: Static Site ─────────────────────────────────────────────────
-  - name: alumni-platform-frontend
+  - type: web
+    name: alumni-platform-frontend
+    env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
