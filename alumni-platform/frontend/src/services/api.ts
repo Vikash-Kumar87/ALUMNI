@@ -84,6 +84,7 @@ export const usersAPI = {
   updateProfile: (uid: string, data: Record<string, unknown>) =>
     apiService.put(`/users/${uid}`, data),
   deleteUser: (uid: string) => apiService.delete(`/users/${uid}`),
+  cleanupOrphans: () => apiService.post('/users/cleanup-orphans', {}),
 };
 
 export const mentorsAPI = {

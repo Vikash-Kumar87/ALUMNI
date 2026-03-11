@@ -129,86 +129,128 @@ async function batchDelete(snapshot: FirebaseFirestore.QuerySnapshot): Promise<v
   }
 }
 
+// Helper: cascade delete all data for a given uid
+async function cascadeDeleteUser(uid: string): Promise<Record<string, number>> {
+  const [
+    jobsSnap,
+    mentorshipAsStudentSnap,
+    mentorshipAsAlumniSnap,
+    discussionsSnap,
+    notificationsSnap,
+    sessionsAsStudentSnap,
+    sessionsAsMentorSnap,
+    chatMessagesSnap,
+  ] = await Promise.all([
+    db.collection('jobs').where('postedBy', '==', uid).get(),
+    db.collection('mentorship').where('studentId', '==', uid).get(),
+    db.collection('mentorship').where('alumniId', '==', uid).get(),
+    db.collection('discussions').where('postedBy', '==', uid).get(),
+    db.collection('notifications').where('userId', '==', uid).get(),
+    db.collection('sessions').where('student_id', '==', uid).get(),
+    db.collection('sessions').where('mentor_id', '==', uid).get(),
+    db.collection('chats').where('senderId', '==', uid).get(),
+  ]);
+
+  await Promise.all([
+    batchDelete(jobsSnap),
+    batchDelete(mentorshipAsStudentSnap),
+    batchDelete(mentorshipAsAlumniSnap),
+    batchDelete(discussionsSnap),
+    batchDelete(notificationsSnap),
+    batchDelete(sessionsAsStudentSnap),
+    batchDelete(sessionsAsMentorSnap),
+    batchDelete(chatMessagesSnap),
+  ]);
+
+  const chatRoomsSnap = await db.collection('chatRooms').get();
+  const roomsToDelete = chatRoomsSnap.docs.filter(doc => {
+    const participants: string[] = doc.data().participants || [];
+    return participants.includes(uid);
+  });
+  if (roomsToDelete.length > 0) {
+    const batch = db.batch();
+    roomsToDelete.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  await db.collection('users').doc(uid).delete();
+
+  return {
+    jobs: jobsSnap.size,
+    mentorshipRequests: mentorshipAsStudentSnap.size + mentorshipAsAlumniSnap.size,
+    discussions: discussionsSnap.size,
+    notifications: notificationsSnap.size,
+    sessions: sessionsAsStudentSnap.size + sessionsAsMentorSnap.size,
+    chatMessages: chatMessagesSnap.size,
+    chatRooms: roomsToDelete.length,
+  };
+}
+
+// POST /users/cleanup-orphans (admin only) - removes Firestore users with no Firebase Auth account
+router.post('/cleanup-orphans', verifyToken, requireAdmin, async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const usersSnap = await db.collection('users').get();
+    const orphanedUids: string[] = [];
+
+    // Check each Firestore user against Firebase Auth
+    await Promise.all(
+      usersSnap.docs.map(async (doc) => {
+        const uid = doc.id;
+        try {
+          await auth.getUser(uid);
+          // Auth account exists — keep
+        } catch (err: unknown) {
+          const e = err as { code?: string };
+          if (e.code === 'auth/user-not-found') {
+            orphanedUids.push(uid);
+          }
+        }
+      })
+    );
+
+    if (orphanedUids.length === 0) {
+      res.status(200).json({ message: 'No orphaned users found', removed: 0 });
+      return;
+    }
+
+    // Cascade delete all orphaned users
+    await Promise.all(orphanedUids.map(uid => cascadeDeleteUser(uid)));
+
+    res.status(200).json({
+      message: `Cleaned up ${orphanedUids.length} orphaned user(s)`,
+      removed: orphanedUids.length,
+      uids: orphanedUids,
+    });
+  } catch (error) {
+    console.error('Cleanup orphans error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // DELETE /users/:uid (admin only) - cascades and deletes ALL user data
 router.delete('/:uid', verifyToken, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { uid } = req.params;
 
-    // Verify user exists before deleting
     const userDoc = await db.collection('users').doc(uid).get();
     if (!userDoc.exists) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
 
-    // Run all collection queries in parallel
-    const [
-      jobsSnap,
-      mentorshipAsStudentSnap,
-      mentorshipAsAlumniSnap,
-      discussionsSnap,
-      notificationsSnap,
-      sessionsAsStudentSnap,
-      sessionsAsMentorSnap,
-      chatMessagesSnap,
-    ] = await Promise.all([
-      db.collection('jobs').where('postedBy', '==', uid).get(),
-      db.collection('mentorship').where('studentId', '==', uid).get(),
-      db.collection('mentorship').where('alumniId', '==', uid).get(),
-      db.collection('discussions').where('postedBy', '==', uid).get(),
-      db.collection('notifications').where('userId', '==', uid).get(),
-      db.collection('sessions').where('student_id', '==', uid).get(),
-      db.collection('sessions').where('mentor_id', '==', uid).get(),
-      db.collection('chats').where('senderId', '==', uid).get(),
-    ]);
-
-    // Delete all related data in parallel
-    await Promise.all([
-      batchDelete(jobsSnap),
-      batchDelete(mentorshipAsStudentSnap),
-      batchDelete(mentorshipAsAlumniSnap),
-      batchDelete(discussionsSnap),
-      batchDelete(notificationsSnap),
-      batchDelete(sessionsAsStudentSnap),
-      batchDelete(sessionsAsMentorSnap),
-      batchDelete(chatMessagesSnap),
-    ]);
-
-    // Delete chatRooms that involve this user
-    const chatRoomsSnap = await db.collection('chatRooms').get();
-    const roomsToDelete = chatRoomsSnap.docs.filter(doc => {
-      const participants: string[] = doc.data().participants || [];
-      return participants.includes(uid);
-    });
-    if (roomsToDelete.length > 0) {
-      const batch = db.batch();
-      roomsToDelete.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-    }
-
-    // Delete user Firestore document
-    await db.collection('users').doc(uid).delete();
+    const deleted = await cascadeDeleteUser(uid);
 
     // Delete Firebase Auth account
     try {
       await auth.deleteUser(uid);
     } catch (authErr: unknown) {
-      // If auth user doesn't exist, continue gracefully
       const err = authErr as { code?: string };
       if (err.code !== 'auth/user-not-found') throw authErr;
     }
 
     res.status(200).json({
       message: 'User and all associated data deleted successfully',
-      deleted: {
-        jobs: jobsSnap.size,
-        mentorshipRequests: mentorshipAsStudentSnap.size + mentorshipAsAlumniSnap.size,
-        discussions: discussionsSnap.size,
-        notifications: notificationsSnap.size,
-        sessions: sessionsAsStudentSnap.size + sessionsAsMentorSnap.size,
-        chatMessages: chatMessagesSnap.size,
-        chatRooms: roomsToDelete.length,
-      },
+      deleted,
     });
   } catch (error) {
     console.error('Delete user error:', error);

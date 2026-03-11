@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import {
   FiUsers, FiBriefcase, FiMessageSquare, FiShield, FiSearch, FiTrash2,
-  FiUserCheck, FiAlertCircle, FiBarChart2
+  FiUserCheck, FiAlertCircle, FiBarChart2, FiRefreshCw
 } from 'react-icons/fi';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement,
@@ -34,6 +34,7 @@ const AdminDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [cleaning, setCleaning] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -108,6 +109,25 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const cleanupOrphans = async () => {
+    if (!window.confirm('This will remove all users from the website that no longer exist in Firebase Auth (orphaned / fake accounts). Continue?')) return;
+    setCleaning(true);
+    try {
+      const res = await usersAPI.cleanupOrphans();
+      const { removed } = res.data;
+      if (removed === 0) {
+        toast.success('No orphaned users found — everything is clean!');
+      } else {
+        toast.success(`Cleaned up ${removed} orphaned user account(s)`);
+        await fetchData(); // refresh the list
+      }
+    } catch {
+      toast.error('Cleanup failed. Please try again.');
+    } finally {
+      setCleaning(false);
+    }
+  };
+
   const deleteJob = async (id: string) => {
     if (!window.confirm('Delete this job posting?')) return;
     try {
@@ -155,8 +175,19 @@ const AdminDashboard: React.FC = () => {
           </h1>
           <p className="section-subtitle">Manage users, content and monitor platform activity</p>
         </div>
-        <div className="bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 border border-red-100">
-          <FiAlertCircle className="w-4 h-4" /> Admin Access
+        <div className="flex items-center gap-3">
+          <button
+            onClick={cleanupOrphans}
+            disabled={cleaning}
+            className="flex items-center gap-2 bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
+            title="Remove Firestore users that have no Firebase Auth account"
+          >
+            <FiRefreshCw className={`w-4 h-4 ${cleaning ? 'animate-spin' : ''}`} />
+            {cleaning ? 'Cleaning...' : 'Cleanup Orphaned Users'}
+          </button>
+          <div className="bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 border border-red-100">
+            <FiAlertCircle className="w-4 h-4" /> Admin Access
+          </div>
         </div>
       </div>
 
@@ -236,7 +267,17 @@ const AdminDashboard: React.FC = () => {
       {tab === 'users' && (
         <div className="card">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h3 className="font-semibold">All Users ({users.length})</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="font-semibold">All Users ({users.length})</h3>
+              <button
+                onClick={cleanupOrphans}
+                disabled={cleaning}
+                className="flex items-center gap-1.5 text-xs bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-60"
+              >
+                <FiRefreshCw className={`w-3 h-3 ${cleaning ? 'animate-spin' : ''}`} />
+                {cleaning ? 'Cleaning...' : 'Remove Orphaned'}
+              </button>
+            </div>
             <div className="relative w-full sm:w-64">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="input input-glow pl-9 text-sm py-2" />
