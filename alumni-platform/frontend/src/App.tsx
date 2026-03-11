@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Navbar from './components/common/Navbar';
+import { startKeepAlive } from './services/keepAlive';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -33,6 +34,12 @@ const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({
 );
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Keep Render free-tier backend warm; prevents cold-start network errors
+    const stopKeepAlive = startKeepAlive();
+    return stopKeepAlive;
+  }, []);
+
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>

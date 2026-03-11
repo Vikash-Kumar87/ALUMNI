@@ -155,11 +155,19 @@ const ChatPage: React.FC = () => {
       // Fetch real messages to replace optimistic one
       const chatRoomId = [userProfile.uid, selectedUser.userId].sort().join('_');
       await fetchMessages(chatRoomId);
-    } catch {
+    } catch (err: unknown) {
       // Remove optimistic message on failure
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(msgText);
-      toast.error('Failed to send message');
+      const errMsg = err instanceof Error ? err.message : '';
+      // Network error = backend cold-starting on Render free tier
+      const isNetworkErr = errMsg.toLowerCase().includes('network') || errMsg.includes('timeout') || errMsg === '';
+      toast.error(
+        isNetworkErr
+          ? 'Server took too long to respond. Please try sending again.'
+          : `Failed to send message: ${errMsg}`,
+        { duration: 5000 }
+      );
     } finally {
       setSendingMessage(false);
     }

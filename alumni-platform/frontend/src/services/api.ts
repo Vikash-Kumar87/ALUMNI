@@ -1,11 +1,19 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { auth } from '../config/firebase';
+import toast from 'react-hot-toast';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+// Render free tier can take 30-50s to cold-start — give it enough time
+const REQUEST_TIMEOUT = 65000;
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY = 3000; // 3s, 6s, 9s
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const apiService = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: REQUEST_TIMEOUT,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -23,10 +31,38 @@ apiService.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Response error handler
+// Response interceptor: dismiss wakeup toast on success, retry on network/server errors
 apiService.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response) => {
+    toast.dismiss('server-wakeup');
+    return response;
+  },
+  async (error) => {
+    const config = error.config;
+
+    if (!config) {
+      const message = error.response?.data?.error || error.message || 'Something went wrong';
+      return Promise.reject(new Error(message));
+    }
+
+    const isNetworkError = !error.response; // server never responded
+    const isServerError = error.response?.status >= 500;
+
+    if (!config._retryCount) config._retryCount = 0;
+
+    if ((isNetworkError || isServerError) && config._retryCount < MAX_RETRIES) {
+      config._retryCount += 1;
+
+      if (config._retryCount === 1) {
+        // First retry — backend is likely cold-starting on Render free tier
+        toast.loading('Server is waking up, please wait…', { id: 'server-wakeup', duration: Infinity });
+      }
+
+      await sleep(RETRY_BASE_DELAY * config._retryCount);
+      return apiService(config);
+    }
+
+    toast.dismiss('server-wakeup');
     const message = error.response?.data?.error || error.message || 'Something went wrong';
     return Promise.reject(new Error(message));
   }
