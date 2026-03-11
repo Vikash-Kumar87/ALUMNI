@@ -111,7 +111,7 @@ const ProfilePage: React.FC = () => {
           style={{ animation: 'fadeInUp 0.45s ease-out both' }}>
           {/* Gradient header band */}
           <div className="h-28 sm:h-36 relative"
-            style={{ background: isStudent ? 'linear-gradient(135deg,#4f46e5,#7c3aed,#6d28d9)' : 'linear-gradient(135deg,#059669,#0891b2,#047857)' }}>
+            style={{ background: isStudent ? 'linear-gradient(135deg,#4f46e5,#7c3aed,#6d28d9)' : 'linear-gradient(135deg,#059669,#0891b2,#7c3aed,#4f46e5)' }}>
             <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full opacity-15"
               style={{ background: 'radial-gradient(circle,#fff,transparent 70%)' }} />
             <div className="absolute top-4 right-4 flex gap-2">

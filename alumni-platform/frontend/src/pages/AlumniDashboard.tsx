@@ -137,7 +137,7 @@ const AlumniDashboard: React.FC = () => {
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none fixed inset-0 -z-10" style={{ background: 'linear-gradient(160deg,#ecfdf5 0%,#f0fdf4 35%,#eff6ff 65%,#f5f3ff 100%)' }} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        <div className="rounded-3xl h-44" style={{ background: 'linear-gradient(135deg,#059669,#0891b2)', animation: 'fadeInUp 0.4s ease-out both' }} />
+        <div className="rounded-3xl h-44" style={{ background: 'linear-gradient(135deg,#059669,#0891b2,#7c3aed)', animation: 'fadeInUp 0.4s ease-out both' }} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_,i) => <div key={i} className="bg-white/80 rounded-2xl p-5 shadow-sm"><Sk w="w-12" h="h-12" /><div className="mt-3 space-y-2"><Sk w="w-10" h="h-6" /><Sk w="w-20" h="h-3" /></div></div>)}
         </div>
@@ -182,7 +182,7 @@ const AlumniDashboard: React.FC = () => {
 
         {/* ── Hero banner ── */}
         <div className="relative rounded-3xl overflow-hidden mb-8 shadow-2xl"
-          style={{ background: 'linear-gradient(135deg,#059669 0%,#0891b2 45%,#047857 100%)', animation: 'fadeInUp 0.5s ease-out both' }}>
+          style={{ background: 'linear-gradient(135deg,#059669 0%,#0891b2 40%,#7c3aed 75%,#4f46e5 100%)', animation: 'fadeInUp 0.5s ease-out both' }}>
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-15" style={{ background: 'radial-gradient(circle,#34d399,transparent 70%)' }} />
           <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full opacity-10" style={{ background: 'radial-gradient(circle,#6366f1,transparent 70%)' }} />
           <div className="relative z-10 px-6 sm:px-10 py-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
