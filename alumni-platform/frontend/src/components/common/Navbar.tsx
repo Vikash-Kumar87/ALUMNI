@@ -2,12 +2,33 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsAPI } from '../../services/api';
-import { Notification } from '../../types';
+import { Notification, NotificationType } from '../../types';
 import {
   FiHome, FiUsers, FiMessageSquare, FiBriefcase, FiCpu,
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
-  FiCheck, FiMap, FiUserCheck
+  FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
+  FiZap, FiMail
 } from 'react-icons/fi';
+
+/* ── Notification type config ── */
+const NOTIF_CONFIG: Record<NotificationType, { icon: React.ElementType; grad: string; bg: string; label: string }> = {
+  mentorship_request:  { icon: FiUserPlus,    grad: 'linear-gradient(135deg,#6366f1,#7c3aed)', bg: 'rgba(238,242,255,0.9)', label: 'Mentorship Request' },
+  mentorship_accepted: { icon: FiCheckCircle, grad: 'linear-gradient(135deg,#10b981,#059669)', bg: 'rgba(236,253,245,0.9)', label: 'Request Accepted' },
+  mentorship_rejected: { icon: FiXCircle,     grad: 'linear-gradient(135deg,#f43f5e,#e11d48)', bg: 'rgba(255,241,242,0.9)', label: 'Request Rejected' },
+  new_job:             { icon: FiBriefcase,   grad: 'linear-gradient(135deg,#f59e0b,#d97706)', bg: 'rgba(255,251,235,0.9)', label: 'New Job' },
+  discussion_answer:   { icon: FiMessageSquare, grad: 'linear-gradient(135deg,#8b5cf6,#a855f7)', bg: 'rgba(245,243,255,0.9)', label: 'New Answer' },
+  message:             { icon: FiMail,        grad: 'linear-gradient(135deg,#06b6d4,#0891b2)', bg: 'rgba(236,254,255,0.9)', label: 'New Message' },
+};
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 const Navbar: React.FC = () => {
   const { currentUser, userProfile, logout } = useAuth();
@@ -183,49 +204,108 @@ const Navbar: React.FC = () => {
                     </button>
 
                     {notifOpen && (
-                      <div className="fixed sm:absolute left-2 right-2 top-16 w-auto sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white rounded-2xl shadow-lift border border-gray-100 z-50 animate-scale-in overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                          <span className="text-sm font-bold text-gray-900">Notifications</span>
+                      <div className="fixed sm:absolute left-2 right-2 top-16 w-auto sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 rounded-2xl shadow-2xl border border-white/20 z-50 overflow-hidden"
+                        style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', animation: 'fadeInUp 0.2s ease-out both' }}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100/80"
+                          style={{ background: 'linear-gradient(135deg,rgba(79,70,229,0.06),rgba(124,58,237,0.04))' }}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                              style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
+                              <FiBell className="w-3.5 h-3.5 text-white" />
+                            </div>
+                            <span className="text-sm font-bold text-gray-900">Notifications</span>
+                            {unreadCount > 0 && (
+                              <span className="ml-1 text-xs font-bold text-white px-2 py-0.5 rounded-full"
+                                style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
+                                {unreadCount} new
+                              </span>
+                            )}
+                          </div>
                           {unreadCount > 0 && (
                             <button
                               onClick={handleMarkAllRead}
-                              className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium"
+                              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
+                              style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1' }}
+                              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(99,102,241,0.18)'}
+                              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(99,102,241,0.1)'}
                             >
                               <FiCheck className="w-3 h-3" /> Mark all read
                             </button>
                           )}
                         </div>
-                        <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+
+                        {/* List */}
+                        <div className="max-h-[420px] overflow-y-auto">
                           {notifications.length === 0 ? (
-                            <div className="py-10 flex flex-col items-center text-gray-400">
-                              <FiBell className="w-8 h-8 mb-2 opacity-30" />
-                              <p className="text-sm">No notifications yet</p>
+                            <div className="py-14 flex flex-col items-center gap-3 text-gray-400"
+                              style={{ animation: 'fadeInUp 0.3s ease-out both' }}>
+                              <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                                style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.06))' }}>
+                                <FiBell className="w-7 h-7 text-indigo-300" />
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-semibold text-gray-500">You're all caught up!</p>
+                                <p className="text-xs text-gray-400 mt-1">No notifications yet</p>
+                              </div>
                             </div>
                           ) : (
-                            notifications.map(n => (
-                              <button
-                                key={n.id}
-                                onClick={() => handleNotifClick(n)}
-                                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                                  !n.read ? 'bg-primary-50/40' : ''
-                                }`}
-                              >
-                                <div className="flex items-start gap-2">
-                                  {!n.read && (
-                                    <span className="mt-1.5 w-2 h-2 rounded-full bg-primary-500 shrink-0" />
-                                  )}
-                                  <div className={!n.read ? '' : 'pl-4'}>
-                                    <p className={`text-sm font-medium ${!n.read ? 'text-gray-900' : 'text-gray-600'}`}>{n.title}</p>
-                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</p>
-                                    <p className="text-[10px] text-gray-400 mt-1">
-                                      {new Date(n.createdAt).toLocaleString()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </button>
-                            ))
+                            <div className="divide-y divide-gray-50">
+                              {notifications.map((n, i) => {
+                                const cfg = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG['message'];
+                                const Icon = cfg.icon;
+                                return (
+                                  <button
+                                    key={n.id}
+                                    onClick={() => handleNotifClick(n)}
+                                    className="w-full text-left px-5 py-4 transition-all duration-200 group"
+                                    style={{
+                                      background: n.read ? 'transparent' : cfg.bg,
+                                      animation: `fadeInUp 0.3s ease-out ${i * 40}ms both`,
+                                    }}
+                                    onMouseEnter={e => { if (n.read) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(248,250,252,0.95)'; }}
+                                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = n.read ? 'transparent' : cfg.bg; }}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      {/* Type icon */}
+                                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-110"
+                                        style={{ background: cfg.grad }}>
+                                        <Icon className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <p className={`text-sm font-semibold leading-snug ${n.read ? 'text-gray-700' : 'text-gray-900'}`}>
+                                            {n.title}
+                                          </p>
+                                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                                            <span className="text-[10px] text-gray-400">{timeAgo(n.createdAt)}</span>
+                                            {!n.read && (
+                                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }} />
+                                            )}
+                                          </div>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{n.body}</p>
+                                        {n.link && (
+                                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold mt-1.5 text-indigo-500 group-hover:text-indigo-600 transition-colors">
+                                            <FiZap className="w-2.5 h-2.5" /> View details
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
+
+                        {/* Footer */}
+                        {notifications.length > 0 && (
+                          <div className="px-5 py-3 border-t border-gray-100/80 text-center"
+                            style={{ background: 'linear-gradient(135deg,rgba(79,70,229,0.03),rgba(124,58,237,0.02))' }}>
+                            <p className="text-xs text-gray-400">{notifications.length} notification{notifications.length !== 1 ? 's' : ''} total</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
