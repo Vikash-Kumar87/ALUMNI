@@ -46,7 +46,7 @@ router.post('/career-guidance', verifyToken, async (req: AuthRequest, res: Respo
     - Industry trends and job market insights
     Be concise, practical, and encouraging. Format responses with clear sections when appropriate.`;
 
-    // Convert Gemini-format history to OpenAI-format messages
+    // Convert chat history to Groq-format messages
     const historyMessages = (history || []).map((h: any) => ({
       role: h.role === 'model' ? 'assistant' : 'user',
       content: Array.isArray(h.parts) ? (h.parts[0]?.text || '') : (h.content || ''),

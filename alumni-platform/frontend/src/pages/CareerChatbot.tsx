@@ -25,7 +25,7 @@ const CareerChatbot: React.FC = () => {
     {
       id: '0',
       role: 'assistant',
-      text: "Hi! I'm your AI Career Advisor powered by Google Gemini. I can help you with career guidance, learning roadmaps, interview prep, and more. What would you like to explore today?",
+      text: "Hi! I'm your AI Career Advisor powered by Groq AI. I can help you with career guidance, learning roadmaps, interview prep, and more. What would you like to explore today?",
       timestamp: new Date(),
     },
   ]);
@@ -98,7 +98,7 @@ const CareerChatbot: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">AI Career Chatbot</h1>
-            <p className="text-sm text-gray-500">Powered by Google Gemini · Always available, always free</p>
+            <p className="text-sm text-gray-500">Powered by Groq AI · Always available, always free</p>
           </div>
         </div>
         <button onClick={handleReset} className="btn-secondary flex items-center gap-2 text-sm">

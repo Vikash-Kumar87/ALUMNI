@@ -169,7 +169,7 @@ export interface PlatformStats {
   activeMentorships: number;
 }
 
-// ===== Chat Message History for Gemini =====
+// ===== Chat Message History for Groq =====
 export interface ChatMessage {
   role: 'user' | 'model';
   parts: [{ text: string }];

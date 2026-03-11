@@ -28,7 +28,7 @@ const FEATURES = [
   {
     icon: FiMessageCircle,
     title: 'AI Career Chatbot',
-    description: 'Get personalized career guidance 24/7 from our Gemini-powered chatbot. Ask about internships, skills, or career paths.',
+    description: 'Get personalized career guidance 24/7 from our Groq-powered chatbot. Ask about internships, skills, or career paths.',
     color: 'from-purple-500 to-pink-500',
     bg: 'bg-purple-50',
     border: 'border-purple-100',
@@ -304,7 +304,7 @@ const LandingPage: React.FC = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            Powered by Google Gemini AI
+            Powered by Groq AI
           </motion.div>
 
           <motion.h1
@@ -542,7 +542,7 @@ const LandingPage: React.FC = () => {
           </div>
           <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
             <p>© {new Date().getFullYear()} AlumniConnect. All rights reserved.</p>
-            <p>Built with React, Node.js, Firebase & Gemini AI</p>
+            <p>Built with React, Node.js, Firebase & Groq AI</p>
           </div>
         </div>
       </footer>

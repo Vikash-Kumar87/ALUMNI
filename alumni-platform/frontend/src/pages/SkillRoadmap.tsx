@@ -67,7 +67,7 @@ const SkillRoadmap: React.FC = () => {
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">AI Skill Roadmap</h1>
-          <p className="text-sm text-gray-500">Powered by Google Gemini · Get a personalised learning path</p>
+          <p className="text-sm text-gray-500">Powered by Groq AI · Get a personalised learning path</p>
         </div>
       </div>
 

@@ -12,7 +12,7 @@ A full-stack web application that bridges the gap between alumni and students th
 | Backend | Node.js · Express.js · TypeScript |
 | Auth | Firebase Authentication (Google + Email/Password) |
 | Database | Firebase Firestore + Firebase Realtime Database |
-| AI | Google Gemini 1.5 Flash (free tier) |
+| AI | Groq API (free tier) |
 | Deployment | Vercel (frontend) + Render/Railway (backend) |
 
 ---
@@ -20,7 +20,7 @@ A full-stack web application that bridges the gap between alumni and students th
 ## Features
 
 - 🔐 **Authentication** — Email/password and Google sign-in with role-based access (Student / Alumni / Admin)
-- 🤝 **AI Mentor Matching** — Gemini-powered recommendations to pair students with the best alumni mentors
+- 🤝 **AI Mentor Matching** — Groq-powered recommendations to pair students with the best alumni mentors
 - 💬 **Career Chatbot** — Multi-turn AI chatbot for 24/7 career guidance
 - 🎯 **Interview Practice** — AI-generated questions with evaluation, scoring, and model answers
 - 💼 **Job Board** — Alumni post jobs, internships, and referrals; students apply
@@ -75,7 +75,7 @@ alumni-platform/
 - Node.js 18+
 - npm or yarn
 - A [Firebase project](https://console.firebase.google.com/) (free tier works)
-- A [Google Gemini API key](https://aistudio.google.com/app/apikey) (free tier works)
+- A [Groq API key](https://console.groq.com) (free tier works)
 
 ---
 
@@ -169,7 +169,7 @@ FIREBASE_PROJECT_ID=your-project-id
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@your-project.iam.gserviceaccount.com
 FIREBASE_DATABASE_URL=https://your-project-default-rtdb.firebaseio.com
-GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 FRONTEND_URL=http://localhost:5173
 ```
 

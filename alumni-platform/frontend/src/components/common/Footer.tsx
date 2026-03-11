@@ -65,7 +65,7 @@ const Footer: React.FC = () => (
       </div>
       <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
         <p className="text-xs text-gray-500">© 2026 AlumniConnect. All rights reserved.</p>
-        <p className="text-xs text-gray-500">Built with React, Node.js, Firebase &amp; Gemini AI</p>
+        <p className="text-xs text-gray-500">Built with React, Node.js, Firebase &amp; Groq AI</p>
       </div>
     </div>
   </footer>
