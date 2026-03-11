@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { verifyToken, requireAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -117,12 +117,99 @@ router.put('/:uid', verifyToken, async (req: AuthRequest, res: Response): Promis
   }
 });
 
-// DELETE /users/:uid (admin only)
+// Helper: batch delete a Firestore query snapshot
+async function batchDelete(snapshot: FirebaseFirestore.QuerySnapshot): Promise<void> {
+  if (snapshot.empty) return;
+  const batchSize = 400;
+  const docs = snapshot.docs;
+  for (let i = 0; i < docs.length; i += batchSize) {
+    const batch = db.batch();
+    docs.slice(i, i + batchSize).forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  }
+}
+
+// DELETE /users/:uid (admin only) - cascades and deletes ALL user data
 router.delete('/:uid', verifyToken, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { uid } = req.params;
+
+    // Verify user exists before deleting
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Run all collection queries in parallel
+    const [
+      jobsSnap,
+      mentorshipAsStudentSnap,
+      mentorshipAsAlumniSnap,
+      discussionsSnap,
+      notificationsSnap,
+      sessionsAsStudentSnap,
+      sessionsAsMentorSnap,
+      chatMessagesSnap,
+    ] = await Promise.all([
+      db.collection('jobs').where('postedBy', '==', uid).get(),
+      db.collection('mentorship').where('studentId', '==', uid).get(),
+      db.collection('mentorship').where('alumniId', '==', uid).get(),
+      db.collection('discussions').where('postedBy', '==', uid).get(),
+      db.collection('notifications').where('userId', '==', uid).get(),
+      db.collection('sessions').where('student_id', '==', uid).get(),
+      db.collection('sessions').where('mentor_id', '==', uid).get(),
+      db.collection('chats').where('senderId', '==', uid).get(),
+    ]);
+
+    // Delete all related data in parallel
+    await Promise.all([
+      batchDelete(jobsSnap),
+      batchDelete(mentorshipAsStudentSnap),
+      batchDelete(mentorshipAsAlumniSnap),
+      batchDelete(discussionsSnap),
+      batchDelete(notificationsSnap),
+      batchDelete(sessionsAsStudentSnap),
+      batchDelete(sessionsAsMentorSnap),
+      batchDelete(chatMessagesSnap),
+    ]);
+
+    // Delete chatRooms that involve this user
+    const chatRoomsSnap = await db.collection('chatRooms').get();
+    const roomsToDelete = chatRoomsSnap.docs.filter(doc => {
+      const participants: string[] = doc.data().participants || [];
+      return participants.includes(uid);
+    });
+    if (roomsToDelete.length > 0) {
+      const batch = db.batch();
+      roomsToDelete.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    }
+
+    // Delete user Firestore document
     await db.collection('users').doc(uid).delete();
-    res.status(200).json({ message: 'User deleted successfully' });
+
+    // Delete Firebase Auth account
+    try {
+      await auth.deleteUser(uid);
+    } catch (authErr: unknown) {
+      // If auth user doesn't exist, continue gracefully
+      const err = authErr as { code?: string };
+      if (err.code !== 'auth/user-not-found') throw authErr;
+    }
+
+    res.status(200).json({
+      message: 'User and all associated data deleted successfully',
+      deleted: {
+        jobs: jobsSnap.size,
+        mentorshipRequests: mentorshipAsStudentSnap.size + mentorshipAsAlumniSnap.size,
+        discussions: discussionsSnap.size,
+        notifications: notificationsSnap.size,
+        sessions: sessionsAsStudentSnap.size + sessionsAsMentorSnap.size,
+        chatMessages: chatMessagesSnap.size,
+        chatRooms: roomsToDelete.length,
+      },
+    });
   } catch (error) {
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Internal server error' });
