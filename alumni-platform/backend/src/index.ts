@@ -63,19 +63,15 @@ const aiLimiter = rateLimit({
   message: { error: 'AI rate limit exceeded. Please wait before making more requests.' },
 });
 
-app.use('/api/ai', aiLimiter);
-app.use(limiter);
-
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Root ping — UptimeRobot / keep-alive monitors hit this
+// Root ping & health — MUST be before rate limiters so Render/UptimeRobot never get 429
 app.get('/', (_req, res) => {
   res.status(200).json({ status: 'OK', service: 'Alumni-Student Platform API' });
 });
 
-// Health check
 app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -83,6 +79,10 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Rate limiting — applied only to API routes, not health/root
+app.use('/api/ai', aiLimiter);
+app.use('/api', limiter);
 
 // API routes
 app.use('/api/auth', authRoutes);
