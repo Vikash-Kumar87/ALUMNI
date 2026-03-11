@@ -70,6 +70,11 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Root ping — UptimeRobot / keep-alive monitors hit this
+app.get('/', (_req, res) => {
+  res.status(200).json({ status: 'OK', service: 'Alumni-Student Platform API' });
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.status(200).json({
