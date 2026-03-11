@@ -1,8 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { usersAPI, chatAPI } from '../services/api';
+import { usersAPI, chatAPI, paymentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
+import toast from 'react-hot-toast';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import {
+  FiSend, FiSearch, FiUser, FiArrowLeft, FiLock, FiCalendar, FiMessageCircle
+} from 'react-icons/fi';
+import { HiAcademicCap } from 'react-icons/hi';
+import { MdSchool, MdPeople } from 'react-icons/md';
+import { formatDistanceToNow } from 'date-fns';
 
 interface RealTimeMessage {
   id: string;
@@ -12,18 +20,12 @@ interface RealTimeMessage {
   text: string;
   createdAt: string;
 }
-import toast from 'react-hot-toast';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import { FiSend, FiMessageCircle, FiSearch, FiUser, FiArrowLeft } from 'react-icons/fi';
-import { formatDistanceToNow } from 'date-fns';
 
 interface Conversation {
   userId: string;
   displayName: string;
   photoURL?: string;
   role: 'student' | 'alumni';
-  lastMessage?: string;
-  lastMessageAt?: string;
 }
 
 const ChatPage: React.FC = () => {
@@ -38,29 +40,34 @@ const ChatPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+  const [chatLocked, setChatLocked] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [lockedMentor, setLockedMentor] = useState<{ price_per_session: number; name: string; uid: string } | null>(null);
+  // Tab defaults to logged-in user's own role
+  const [activeTab, setActiveTab] = useState<'alumni' | 'student'>('alumni');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Track known message IDs to avoid wiping state on empty poll response
   const knownIdsRef = useRef<Set<string>>(new Set());
-
   const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (hasFetched.current) return; // prevent React StrictMode double-invoke
+    if (hasFetched.current) return;
     hasFetched.current = true;
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (userProfile?.role) {
+      setActiveTab(userProfile.role as 'alumni' | 'student');
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
+    return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); };
   }, []);
 
   const fetchUsers = async () => {
@@ -78,14 +85,10 @@ const ChatPage: React.FC = () => {
       }));
       setConversations(convs);
 
-      // Auto-select user from ?userId= query param (e.g. from alumni dashboard)
       const targetUserId = searchParams.get('userId');
       if (targetUserId) {
         const target = convs.find(c => c.userId === targetUserId);
-        if (target) {
-          // defer so state is set first
-          setTimeout(() => selectConversation(target), 0);
-        }
+        if (target) setTimeout(() => selectConversation(target), 0);
       }
     } catch {
       toast.error('Failed to load users');
@@ -99,35 +102,45 @@ const ChatPage: React.FC = () => {
       const res = await chatAPI.getMessages(chatRoomId);
       const msgs: RealTimeMessage[] = res.data.messages || [];
       if (msgs.length > 0) {
-        // Merge: keep any optimistic messages not yet confirmed, add real ones
         setMessages(prev => {
-          // remove optimistic (temp_*) entries that now have a real counterpart
           const merged = [
             ...prev.filter(m => m.id.startsWith('temp_') && !msgs.some(r => r.text === m.text && r.senderId === m.senderId)),
             ...msgs,
           ];
           merged.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          // update known IDs
           msgs.forEach(m => knownIdsRef.current.add(m.id));
           return merged;
         });
       }
-      // if msgs is empty but we already have messages, keep them (transient fetch issue)
-    } catch {
-      // silently ignore poll errors
-    }
+    } catch { /* silently ignore poll errors */ }
   };
 
-  const selectConversation = (conv: Conversation) => {
+  const selectConversation = async (conv: Conversation) => {
     setSelectedUser(conv);
     setMessages([]);
+    setChatLocked(false);
+    setLockedMentor(null);
     knownIdsRef.current = new Set();
     setMobileView('chat');
 
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
+    if (userProfile?.role === 'student' && conv.role === 'alumni') {
+      const alumniUser = allUsers.find(u => u.uid === conv.userId);
+      if (alumniUser?.price_per_session) {
+        setCheckingPayment(true);
+        try {
+          const checkRes = await paymentsAPI.checkSession(conv.userId);
+          if (!checkRes.data.hasPaidSession) {
+            setChatLocked(true);
+            setLockedMentor({ price_per_session: alumniUser.price_per_session, name: conv.displayName, uid: conv.userId });
+            setCheckingPayment(false);
+            return;
+          }
+        } catch { /* fail open */ }
+        setCheckingPayment(false);
+      }
     }
 
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     const chatRoomId = [userProfile!.uid, conv.userId].sort().join('_');
     fetchMessages(chatRoomId);
     pollIntervalRef.current = setInterval(() => fetchMessages(chatRoomId), 2000);
@@ -140,200 +153,392 @@ const ChatPage: React.FC = () => {
     const msgText = newMessage.trim();
     const tempId = `temp_${Date.now()}`;
     const optimistic: RealTimeMessage = {
-      id: tempId,
-      senderId: userProfile.uid,
-      senderName: userProfile.name,
-      senderPhoto: userProfile.avatar || null,
-      text: msgText,
-      createdAt: new Date().toISOString(),
+      id: tempId, senderId: userProfile.uid, senderName: userProfile.name,
+      senderPhoto: userProfile.avatar || null, text: msgText, createdAt: new Date().toISOString(),
     };
-    // Show immediately
     setMessages(prev => [...prev, optimistic]);
     setNewMessage('');
     try {
       await chatAPI.sendMessage(selectedUser.userId, msgText);
-      // Fetch real messages to replace optimistic one
       const chatRoomId = [userProfile.uid, selectedUser.userId].sort().join('_');
       await fetchMessages(chatRoomId);
     } catch (err: unknown) {
-      // Remove optimistic message on failure
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(msgText);
       const errMsg = err instanceof Error ? err.message : '';
-      // Network error = backend cold-starting on Render free tier
       const isNetworkErr = errMsg.toLowerCase().includes('network') || errMsg.includes('timeout') || errMsg === '';
-      toast.error(
-        isNetworkErr
-          ? 'Server took too long to respond. Please try sending again.'
-          : `Failed to send message: ${errMsg}`,
-        { duration: 5000 }
-      );
+      toast.error(isNetworkErr ? 'Server took too long. Please try again.' : `Failed: ${errMsg}`, { duration: 5000 });
     } finally {
       setSendingMessage(false);
     }
   };
 
-  const filteredConversations = conversations.filter(c =>
-    c.displayName.toLowerCase().includes(search.toLowerCase())
+  // Separate by tab
+  const alumniList = conversations.filter(c =>
+    c.role === 'alumni' && c.displayName.toLowerCase().includes(search.toLowerCase())
+  );
+  const studentList = conversations.filter(c =>
+    c.role === 'student' && c.displayName.toLowerCase().includes(search.toLowerCase())
+  );
+  const tabList = activeTab === 'alumni' ? alumniList : studentList;
+
+  const alumniCount = conversations.filter(c => c.role === 'alumni').length;
+  const studentCount = conversations.filter(c => c.role === 'student').length;
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-96">
+      <div className="text-center">
+        <div className="relative w-16 h-16 mx-auto mb-4">
+          <div className="absolute inset-0 rounded-full border-4 border-violet-200 animate-pulse" />
+          <div className="absolute inset-0 rounded-full border-4 border-t-violet-600 animate-spin" />
+          <FiMessageCircle className="absolute inset-0 m-auto w-6 h-6 text-violet-600" />
+        </div>
+        <p className="text-gray-500 font-medium">Loading conversations...</p>
+      </div>
+    </div>
   );
 
-  if (loading) return <div className="flex items-center justify-center h-96"><LoadingSpinner /></div>;
-
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="icon-box w-9 h-9 bg-gradient-to-br from-primary-500 to-violet-600">
-            <FiMessageCircle className="w-4 h-4 text-white" />
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      {/* Header */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="relative">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-200">
+            <FiMessageCircle className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Messages</h1>
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse" />
         </div>
-        <p className="text-gray-500 ml-12">Connect and chat with alumni and students</p>
+        <div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-700 to-indigo-600 bg-clip-text text-transparent">
+            Messages
+          </h1>
+          <p className="text-gray-500 text-sm">Connect and chat with alumni and students</p>
+        </div>
+        <div className="ml-auto hidden sm:flex gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 rounded-full text-xs font-semibold border border-violet-100">
+            <HiAcademicCap className="w-3.5 h-3.5" />
+            {alumniCount} Alumni
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold border border-indigo-100">
+            <MdSchool className="w-3.5 h-3.5" />
+            {studentCount} Students
+          </span>
+        </div>
       </div>
 
-      <div className="card p-0 overflow-hidden flex h-[70vh] min-h-[400px] md:h-[600px]">
-        {/* Sidebar */}
-        <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} md:flex w-full md:w-72 border-r border-gray-100 flex-col flex-shrink-0`}>
-          <div className="p-3 border-b border-gray-100">
-            <div className="relative">
+      {/* Main Card */}
+      <div className="rounded-2xl border border-gray-200 overflow-hidden flex h-[72vh] min-h-[420px] shadow-xl shadow-gray-100/60 bg-white">
+
+        {/* ── SIDEBAR ── */}
+        <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} md:flex w-full md:w-80 border-r border-gray-100 flex-col flex-shrink-0 bg-gradient-to-b from-slate-50 to-white`}>
+
+          {/* Sidebar header with tabs */}
+          <div className="p-4 border-b border-gray-100">
+            {/* Search */}
+            <div className="relative mb-3">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search users..."
-                className="input pl-9 text-sm py-2"
+                placeholder="Search people..."
+                className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all placeholder-gray-400"
               />
+            </div>
+
+            {/* Role Tabs */}
+            <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
+              <button
+                onClick={() => setActiveTab('alumni')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === 'alumni'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-200 scale-[1.02]'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-white/70'
+                }`}
+              >
+                <HiAcademicCap className="w-4 h-4" />
+                Alumni
+                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  activeTab === 'alumni' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                }`}>{alumniCount}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('student')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === 'student'
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-200 scale-[1.02]'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-white/70'
+                }`}
+              >
+                <MdSchool className="w-4 h-4" />
+                Students
+                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  activeTab === 'student' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                }`}>{studentCount}</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-sm px-4">No users found</div>
+          {/* User list */}
+          <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+            {tabList.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <MdPeople className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-gray-500 text-sm font-medium">No {activeTab === 'alumni' ? 'alumni' : 'students'} found</p>
+                <p className="text-gray-400 text-xs mt-1">Try a different search</p>
+              </div>
             ) : (
-              filteredConversations.map(conv => (
-                <button
-                  key={conv.userId}
-                  onClick={() => selectConversation(conv)}
-                  className={`w-full text-left px-3 py-3 flex items-center gap-3 transition-all duration-150 border-b border-gray-50 ${
-                    selectedUser?.userId === conv.userId
-                      ? 'bg-gradient-to-r from-primary-50 to-violet-50 border-l-4 border-primary-500'
-                      : 'hover:bg-gray-50 hover:translate-x-0.5'
-                  }`}
-                >
-                  <div className="relative flex-shrink-0">
-                    {conv.photoURL ? (
-                      <img src={conv.photoURL} alt={conv.displayName} className="w-9 h-9 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-                        <FiUser className="w-4 h-4 text-gray-500" />
+              tabList.map((conv, idx) => {
+                const isSelected = selectedUser?.userId === conv.userId;
+                const isAlumni = conv.role === 'alumni';
+                return (
+                  <button
+                    key={conv.userId}
+                    onClick={() => selectConversation(conv)}
+                    style={{ animationDelay: `${idx * 40}ms` }}
+                    className={`w-full text-left px-3 py-3 rounded-xl flex items-center gap-3 transition-all duration-200 group animate-fade-in ${
+                      isSelected
+                        ? isAlumni
+                          ? 'bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 shadow-sm'
+                          : 'bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 shadow-sm'
+                        : 'hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'
+                    }`}
+                  >
+                    {/* Avatar */}
+                    <div className="relative flex-shrink-0">
+                      {conv.photoURL ? (
+                        <img src={conv.photoURL} alt={conv.displayName} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                      ) : (
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ring-2 ring-white ${
+                          isAlumni
+                            ? 'bg-gradient-to-br from-violet-400 to-purple-500'
+                            : 'bg-gradient-to-br from-indigo-400 to-blue-500'
+                        }`}>
+                          <span className="text-white font-bold text-sm">
+                            {conv.displayName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      {/* Online dot */}
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                        isAlumni ? 'bg-violet-400' : 'bg-indigo-400'
+                      }`} />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm truncate transition-colors ${
+                        isSelected ? (isAlumni ? 'text-violet-800' : 'text-indigo-800') : 'text-gray-800 group-hover:text-gray-900'
+                      }`}>{conv.displayName}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {isAlumni ? (
+                          <HiAcademicCap className="w-3 h-3 text-violet-500 flex-shrink-0" />
+                        ) : (
+                          <MdSchool className="w-3 h-3 text-indigo-500 flex-shrink-0" />
+                        )}
+                        <p className={`text-xs font-medium ${isAlumni ? 'text-violet-600' : 'text-indigo-600'}`}>
+                          {isAlumni ? 'Alumni' : 'Student'}
+                        </p>
                       </div>
-                    )}
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${conv.role === 'alumni' ? 'bg-accent-500' : 'bg-primary-500'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-gray-800 truncate">{conv.displayName}</p>
-                    <p className={`text-xs capitalize ${conv.role === 'alumni' ? 'text-accent-600' : 'text-primary-600'}`}>{conv.role}</p>
-                  </div>
-                </button>
-              ))
+                    </div>
+
+                    {/* Arrow on hover */}
+                    <div className={`transition-all duration-200 ${isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1 group-hover:opacity-60 group-hover:translate-x-0'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${isAlumni ? 'bg-violet-500' : 'bg-indigo-500'}`} />
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className={`flex-1 flex flex-col overflow-hidden ${mobileView === 'list' ? 'hidden md:flex' : ''}`}>
-        {!selectedUser ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-gray-400">
-              <FiMessageCircle className="w-14 h-14 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">Select a user to start chatting</p>
-              <p className="text-sm mt-1 text-gray-300">Connect with alumni and students</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col">
-            {/* Chat header */}
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 bg-white">
-              <button
-                onClick={() => setMobileView('list')}
-                className="md:hidden flex-shrink-0 p-1.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-                aria-label="Back"
-              >
-                <FiArrowLeft className="w-4 h-4" />
-              </button>
-              {selectedUser.photoURL ? (
-                <img src={selectedUser.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-                  <FiUser className="w-4 h-4 text-gray-500" />
+        {/* ── CHAT AREA ── */}
+        <div className={`flex-1 flex flex-col overflow-hidden ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
+
+          {/* No user selected */}
+          {!selectedUser ? (
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-white">
+              <div className="text-center px-6">
+                <div className="relative inline-block mb-6">
+                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center mx-auto">
+                    <FiMessageCircle className="w-10 h-10 text-violet-400" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">✨</span>
+                  </div>
                 </div>
-              )}
-              <div>
-                <p className="font-semibold text-sm text-gray-800">{selectedUser.displayName}</p>
-                <p className={`text-xs capitalize ${selectedUser.role === 'alumni' ? 'text-accent-600' : 'text-primary-600'}`}>{selectedUser.role}</p>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Select a Conversation</h3>
+                <p className="text-gray-500 text-sm max-w-xs">
+                  Choose an <span className="text-violet-600 font-semibold">alumni</span> or <span className="text-indigo-600 font-semibold">student</span> from the list to start chatting
+                </p>
+                <div className="flex gap-2 justify-center mt-4">
+                  <span className="px-3 py-1 bg-violet-50 text-violet-600 rounded-full text-xs font-medium border border-violet-100">🎓 Alumni</span>
+                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium border border-indigo-100">📚 Students</span>
+                </div>
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-              {messages.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No messages yet. Say hello!
+          /* Checking payment */
+          ) : checkingPayment ? (
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-white">
+              <div className="text-center">
+                <div className="relative w-14 h-14 mx-auto mb-4">
+                  <div className="absolute inset-0 rounded-full border-4 border-violet-200" />
+                  <div className="absolute inset-0 rounded-full border-4 border-t-violet-600 animate-spin" />
                 </div>
-              ) : (
-                messages.map(msg => {
-                  const isOwn = msg.senderId === userProfile?.uid;
-                  return (
-                    <div key={msg.id} className={`flex items-end gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}>
-                      {!isOwn && (
-                        <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                          {msg.senderPhoto ? (
-                            <img src={msg.senderPhoto} alt="" className="w-7 h-7 rounded-full object-cover" />
-                          ) : (
-                            <FiUser className="w-3 h-3 text-gray-500" />
-                          )}
-                        </div>
-                      )}
-                      <div className={`max-w-[75%] sm:max-w-xs lg:max-w-sm ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                        <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                          isOwn
-                            ? 'bg-gradient-to-br from-primary-600 to-violet-600 text-white rounded-br-sm shadow-sm'
-                            : 'bg-white text-gray-800 shadow-sm rounded-bl-sm'
-                        }`}>
-                          {msg.text}
-                        </div>
-                        <p className="text-xs text-gray-400 px-1">
-                          {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              <div ref={messagesEndRef} />
+                <p className="text-gray-600 font-medium">Checking access...</p>
+                <p className="text-gray-400 text-sm mt-1">Verifying session booking</p>
+              </div>
             </div>
 
-            {/* Input */}
-            <form onSubmit={sendMessage} className="p-3 border-t border-gray-100 bg-white flex gap-2">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-                placeholder={`Message ${selectedUser.displayName}...`}
-                className="input flex-1 text-sm"
-                disabled={sendingMessage}
-              />
-              <button
-                type="submit"
-                disabled={sendingMessage || !newMessage.trim()}
-                className="btn-gradient px-4 py-2.5 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FiSend className="w-4 h-4" />
-              </button>
-            </form>
-          </div>
-        )}
+          /* Chat locked */
+          ) : chatLocked && lockedMentor ? (
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-white p-6">
+              <div className="text-center max-w-sm">
+                <div className="relative inline-block mb-5">
+                  <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto">
+                    <FiLock className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center">
+                    <span className="text-white text-xs">!</span>
+                  </div>
+                </div>
+                <h3 className="font-bold text-gray-800 text-lg mb-2">Session Booking Required</h3>
+                <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+                  <strong className="text-gray-700">{lockedMentor.name}</strong> requires a booked session before you can message them.
+                </p>
+                <a
+                  href="/mentors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-violet-200 hover:shadow-violet-300 hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <FiCalendar className="w-4 h-4" />
+                  Book Session · ₹{lockedMentor.price_per_session}
+                </a>
+              </div>
+            </div>
+
+          /* Active chat */
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden bg-white">
+
+              {/* Chat header */}
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 bg-white/80 backdrop-blur-sm">
+                <button
+                  onClick={() => setMobileView('list')}
+                  className="md:hidden flex-shrink-0 p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
+                >
+                  <FiArrowLeft className="w-4 h-4" />
+                </button>
+                {selectedUser!.photoURL ? (
+                  <img src={selectedUser!.photoURL} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-violet-100" />
+                ) : (
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedUser!.role === 'alumni'
+                      ? 'bg-gradient-to-br from-violet-400 to-purple-500'
+                      : 'bg-gradient-to-br from-indigo-400 to-blue-500'
+                  }`}>
+                    <span className="text-white font-bold">{selectedUser!.displayName.charAt(0).toUpperCase()}</span>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-gray-900">{selectedUser!.displayName}</p>
+                  <div className="flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${selectedUser!.role === 'alumni' ? 'bg-violet-500' : 'bg-indigo-500'}`} />
+                    <p className={`text-xs font-medium ${selectedUser!.role === 'alumni' ? 'text-violet-600' : 'text-indigo-600'}`}>
+                      {selectedUser!.role === 'alumni' ? '🎓 Alumni' : '📚 Student'}
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-xs text-green-600 font-medium">Active</span>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+                style={{ background: 'linear-gradient(180deg, #f8f9ff 0%, #f0f2ff 50%, #f8f9ff 100%)' }}>
+                {messages.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center mx-auto mb-3 border border-gray-100">
+                      <span className="text-2xl">👋</span>
+                    </div>
+                    <p className="text-gray-500 font-medium text-sm">No messages yet</p>
+                    <p className="text-gray-400 text-xs mt-1">Say hello to {selectedUser!.displayName}!</p>
+                  </div>
+                ) : (
+                  messages.map((msg, idx) => {
+                    const isOwn = msg.senderId === userProfile?.uid;
+                    const showAvatar = !isOwn && (idx === 0 || messages[idx - 1]?.senderId !== msg.senderId);
+                    return (
+                      <div key={msg.id} className={`flex items-end gap-2 animate-fade-in ${isOwn ? 'flex-row-reverse' : ''}`}>
+                        {/* Avatar spacer / real avatar */}
+                        {!isOwn ? (
+                          <div className="w-7 h-7 flex-shrink-0">
+                            {showAvatar && (
+                              msg.senderPhoto ? (
+                                <img src={msg.senderPhoto} alt="" className="w-7 h-7 rounded-full object-cover" />
+                              ) : (
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${
+                                  selectedUser!.role === 'alumni'
+                                    ? 'bg-gradient-to-br from-violet-400 to-purple-500'
+                                    : 'bg-gradient-to-br from-indigo-400 to-blue-500'
+                                }`}>
+                                  {msg.senderName.charAt(0).toUpperCase()}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        ) : null}
+
+                        <div className={`max-w-[75%] sm:max-w-xs lg:max-w-sm flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}>
+                          <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
+                            isOwn
+                              ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm shadow-lg shadow-violet-200/50'
+                              : 'bg-white text-gray-800 shadow-sm rounded-bl-sm border border-gray-100'
+                          } ${msg.id.startsWith('temp_') ? 'opacity-70' : 'opacity-100'}`}>
+                            {msg.text}
+                          </div>
+                          <p className="text-[10px] text-gray-400 px-1">
+                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input */}
+              <form onSubmit={sendMessage} className="p-3 border-t border-gray-100 bg-white flex gap-2 items-center">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={e => setNewMessage(e.target.value)}
+                    placeholder={`Message ${selectedUser!.displayName}...`}
+                    disabled={sendingMessage}
+                    className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white transition-all placeholder-gray-400 pr-4"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={sendingMessage || !newMessage.trim()}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-200 hover:shadow-violet-300 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none flex-shrink-0"
+                >
+                  {sendingMessage ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <FiSend className="w-4 h-4" />
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>

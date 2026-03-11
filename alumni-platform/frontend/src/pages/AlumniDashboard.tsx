@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { mentorsAPI, discussionAPI, jobsAPI, usersAPI } from '../services/api';
-import { MentorshipRequest, Discussion, Job, User } from '../types';
+import { mentorsAPI, discussionAPI, jobsAPI, usersAPI, paymentsAPI } from '../services/api';
+import { MentorshipRequest, Discussion, Job, User, PaidSession } from '../types';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import {
   FiUsers, FiBriefcase, FiMessageSquare, FiArrowRight, FiCheckCircle,
   FiClock, FiUserCheck, FiMessageCircle, FiCheck, FiX, FiAward,
-  FiTrendingUp
+  FiTrendingUp, FiSettings, FiCalendar
 } from 'react-icons/fi';
+import { BiRupee } from 'react-icons/bi';
 
 const AlumniDashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -20,17 +21,25 @@ const AlumniDashboard: React.FC = () => {
   const [students, setStudents] = useState<Record<string, User>>({});
   const [recentDiscussions, setRecentDiscussions] = useState<Discussion[]>([]);
   const [myJobs, setMyJobs] = useState<Job[]>([]);
+  const [paidSessions, setPaidSessions] = useState<PaidSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Mentorship settings state
+  const [pricePerSession, setPricePerSession] = useState<string>('');
+  const [sessionDuration, setSessionDuration] = useState<string>('60 min');
+  const [availability, setAvailability] = useState<string>('');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [reqRes, discRes, jobRes, usersRes] = await Promise.all([
+        const [reqRes, discRes, jobRes, usersRes, sessionsRes] = await Promise.all([
           mentorsAPI.getMyRequests(),
           discussionAPI.getAll(),
           jobsAPI.getAll(),
           usersAPI.getAllUsers(),
+          paymentsAPI.getMentorSessions(),
         ]);
 
         const allRequests = reqRes.data.requests as MentorshipRequest[];
@@ -49,12 +58,22 @@ const AlumniDashboard: React.FC = () => {
           userMap[u.uid] = u;
         });
         setStudents(userMap);
+
+        setPaidSessions(sessionsRes.data.sessions as PaidSession[]);
       } catch (err) {
         console.error('Alumni dashboard fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
+
+    // Pre-fill mentorship settings from profile
+    if (userProfile) {
+      setPricePerSession(String(userProfile.price_per_session || ''));
+      setSessionDuration(userProfile.session_duration || '60 min');
+      setAvailability(userProfile.availability || '');
+    }
+
     fetchAll();
   }, [userProfile?.uid]);
 
@@ -90,8 +109,25 @@ const AlumniDashboard: React.FC = () => {
     }
   };
 
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await paymentsAPI.updateMentorSettings({
+        price_per_session: pricePerSession ? Number(pricePerSession) : undefined,
+        session_duration: sessionDuration || undefined,
+        availability: availability || undefined,
+      });
+      toast.success('Mentorship settings saved!');
+    } catch (err) {
+      toast.error((err as Error).message || 'Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const pendingRequests = requests.filter((r) => r.status === 'pending');
   const acceptedCount = requests.filter((r) => r.status === 'accepted').length;
+  const totalEarnings = paidSessions.reduce((sum, s) => sum + (s.mentor_earning || 0), 0);
 
   if (loading) return <LoadingSpinner fullPage text="Loading dashboard..." />;
 
@@ -101,32 +137,24 @@ const AlumniDashboard: React.FC = () => {
       value: acceptedCount,
       icon: FiUserCheck,
       gradient: 'from-emerald-500 to-teal-600',
-      bg: 'bg-emerald-50',
-      color: 'text-emerald-600',
     },
     {
       label: 'Pending Requests',
       value: pendingRequests.length,
       icon: FiClock,
       gradient: 'from-amber-400 to-orange-500',
-      bg: 'bg-amber-50',
-      color: 'text-amber-600',
     },
     {
       label: 'Jobs Posted',
       value: myJobs.length,
       icon: FiBriefcase,
       gradient: 'from-primary-500 to-violet-600',
-      bg: 'bg-primary-50',
-      color: 'text-primary-600',
     },
     {
-      label: 'Forum Discussions',
-      value: recentDiscussions.length,
-      icon: FiMessageSquare,
-      gradient: 'from-violet-500 to-purple-600',
-      bg: 'bg-violet-50',
-      color: 'text-violet-600',
+      label: 'Sessions Earned',
+      value: `₹${totalEarnings}`,
+      icon: BiRupee,
+      gradient: 'from-green-500 to-emerald-600',
     },
   ];
 
@@ -147,7 +175,7 @@ const AlumniDashboard: React.FC = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {statCards.map(({ label, value, icon: Icon, gradient, bg: _bg, color: _color }, i) => (
+        {statCards.map(({ label, value, icon: Icon, gradient }, i) => (
           <div key={label} className="count-card animate-on-scroll" style={{ transitionDelay: `${i * 100}ms` }}>
             <div className="flex items-center gap-2 sm:gap-4">
               <div className={`icon-box w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br ${gradient} flex-shrink-0`}>
@@ -388,6 +416,140 @@ const AlumniDashboard: React.FC = () => {
           <div className="absolute -right-4 -bottom-12 w-32 h-32 bg-white/5 rounded-full" />
         </div>
       )}
+
+      {/* ── Mentorship Settings ── */}
+      <div className="card mt-6">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-2 h-6 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full" />
+          <FiSettings className="w-5 h-5 text-green-600" />
+          <h3 className="font-bold text-gray-900">Mentorship Settings</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Set your session price and duration so students can book and pay for mentorship sessions.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Session Price (₹)
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={pricePerSession}
+              onChange={e => setPricePerSession(e.target.value)}
+              placeholder="e.g. 500"
+              className="input w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Session Duration
+            </label>
+            <select
+              value={sessionDuration}
+              onChange={e => setSessionDuration(e.target.value)}
+              className="input w-full"
+            >
+              <option value="30 min">30 min</option>
+              <option value="45 min">45 min</option>
+              <option value="60 min">1 hour</option>
+              <option value="90 min">1.5 hours</option>
+              <option value="120 min">2 hours</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Availability
+            </label>
+            <input
+              type="text"
+              value={availability}
+              onChange={e => setAvailability(e.target.value)}
+              placeholder="e.g. Weekends 10am–2pm"
+              className="input w-full"
+            />
+          </div>
+        </div>
+        <button
+          onClick={handleSaveSettings}
+          disabled={savingSettings}
+          className="btn-primary mt-4 flex items-center gap-2"
+        >
+          <FiCheckCircle className="w-4 h-4" />
+          {savingSettings ? 'Saving...' : 'Save Settings'}
+        </button>
+        {userProfile?.price_per_session ? (
+          <p className="text-xs text-green-600 mt-2 font-medium">
+            ✓ Current price: ₹{userProfile.price_per_session} / {userProfile.session_duration || '60 min'}
+          </p>
+        ) : (
+          <p className="text-xs text-amber-600 mt-2">
+            ⚠ No price set yet — students cannot book paid sessions until you set a price.
+          </p>
+        )}
+      </div>
+
+      {/* ── Paid Mentorship Sessions ── */}
+      <div className="card mt-6">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-2 h-6 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full" />
+          <FiCalendar className="w-5 h-5 text-green-600" />
+          <h3 className="font-bold text-gray-900">Paid Mentorship Sessions</h3>
+          {paidSessions.length > 0 && (
+            <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+              {paidSessions.length}
+            </span>
+          )}
+        </div>
+
+        {paidSessions.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <BiRupee className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No paid sessions yet. Set your price above to get started.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                  <th className="pb-2 font-semibold">Student</th>
+                  <th className="pb-2 font-semibold">Amount</th>
+                  <th className="pb-2 font-semibold">Your Earning</th>
+                  <th className="pb-2 font-semibold">Payment</th>
+                  <th className="pb-2 font-semibold">Session</th>
+                  <th className="pb-2 font-semibold">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {paidSessions.map((session) => (
+                  <tr key={session.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-2.5 font-medium text-gray-900">{session.student_name || '—'}</td>
+                    <td className="py-2.5 text-gray-700">₹{session.amount}</td>
+                    <td className="py-2.5 text-green-700 font-semibold">₹{session.mentor_earning}</td>
+                    <td className="py-2.5">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        session.payment_status === 'success'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-600'
+                      }`}>
+                        {session.payment_status}
+                      </span>
+                    </td>
+                    <td className="py-2.5">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                        {session.session_status}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-gray-400 text-xs">
+                      {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

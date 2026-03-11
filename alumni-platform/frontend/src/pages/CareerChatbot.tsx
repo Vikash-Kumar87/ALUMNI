@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { aiAPI } from '../services/api';
 import { ChatMessage } from '../types';
-import { FiSend, FiRefreshCw, FiCpu } from 'react-icons/fi';
+import { FiSend, FiRefreshCw } from 'react-icons/fi';
+import { HiSparkles } from 'react-icons/hi';
+import { MdPsychology } from 'react-icons/md';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -12,12 +14,12 @@ interface Message {
 }
 
 const QUICK_PROMPTS = [
-  'How to become a full-stack developer?',
-  'Roadmap for Data Science career',
-  'Best resources to learn React',
-  'How to crack FAANG interviews?',
-  'What skills do companies look for?',
-  'How to build a strong portfolio?',
+  { icon: '🚀', text: 'How to become a full-stack developer?' },
+  { icon: '📊', text: 'Roadmap for Data Science career' },
+  { icon: '⚛️', text: 'Best resources to learn React' },
+  { icon: '🏢', text: 'How to crack FAANG interviews?' },
+  { icon: '💼', text: 'What skills do companies look for?' },
+  { icon: '🎯', text: 'How to build a strong portfolio?' },
 ];
 
 const CareerChatbot: React.FC = () => {
@@ -42,18 +44,13 @@ const CareerChatbot: React.FC = () => {
   const handleSend = async (text?: string) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
-
     setInput('');
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: userText, timestamp: new Date() }]);
     setLoading(true);
-
     try {
       const res = await aiAPI.careerGuidance(userText, history);
       const aiResponse = res.data.response as string;
-
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: aiResponse, timestamp: new Date() }]);
-
-      // Update conversation history for context
       setHistory(prev => [
         ...prev,
         { role: 'user', parts: [{ text: userText }] },
@@ -61,12 +58,7 @@ const CareerChatbot: React.FC = () => {
       ]);
     } catch (err: any) {
       const errMsg = err?.response?.data?.error || 'Sorry, I encountered an error. Please try again in a moment.';
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        text: errMsg,
-        timestamp: new Date(),
-      }]);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: errMsg, timestamp: new Date() }]);
     } finally {
       setLoading(false);
     }
@@ -90,47 +82,79 @@ const CareerChatbot: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="icon-box w-11 h-11 bg-gradient-to-br from-primary-500 to-violet-600 text-lg animate-glow-pulse">
-            <FiCpu className="w-5 h-5 text-white" />
+    <div className="max-w-4xl mx-auto px-4 py-6 animate-fade-in">
+
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-300/50">
+              <MdPsychology className="w-7 h-7 text-white" />
+            </div>
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 opacity-30 blur-md scale-110 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white">
+              <div className="w-full h-full rounded-full bg-green-400 animate-ping opacity-75" />
+            </div>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">AI Career Chatbot</h1>
-            <p className="text-sm text-gray-500">Powered by Groq AI · Always available, always free</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-violet-700 to-indigo-600 bg-clip-text text-transparent">
+                AI Career Chatbot
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-violet-50 to-indigo-50 text-violet-600 rounded-full text-xs font-semibold border border-violet-100">
+                <HiSparkles className="w-3 h-3" /> Groq AI
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+              Always available, always free
+            </p>
           </div>
         </div>
-        <button onClick={handleReset} className="btn-secondary flex items-center gap-2 text-sm">
-          <FiRefreshCw className="w-4 h-4" /> New Chat
+        <button
+          onClick={handleReset}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-violet-200 hover:text-violet-600 transition-all duration-200 shadow-sm group"
+        >
+          <FiRefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+          New Chat
         </button>
       </div>
 
-      {/* Chat Window */}
-      <div className="card p-0 overflow-hidden flex flex-col" style={{ height: '60vh' }}>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map(msg => (
-            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.role === 'assistant' && (
-                <div className="w-8 h-8 icon-box bg-gradient-to-br from-primary-500 to-violet-600 mr-2 flex-shrink-0 mt-0.5 shadow-sm">
-                  <FiCpu className="w-4 h-4 text-white" />
+      {/* CHAT WINDOW */}
+      <div className="rounded-2xl border border-gray-200 overflow-hidden flex flex-col shadow-xl shadow-gray-100/60" style={{ height: '60vh' }}>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4" style={{ background: 'linear-gradient(160deg, #f5f3ff 0%, #eef2ff 50%, #f5f3ff 100%)' }}>
+          {messages.map((msg, idx) => (
+            <div
+              key={msg.id}
+              className={`flex items-end gap-2.5 animate-fade-in ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+              style={{ animationDelay: `${idx * 30}ms` }}
+            >
+              {msg.role === 'assistant' ? (
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-violet-200">
+                  <MdPsychology className="w-4 h-4 text-white" />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <span className="text-white text-xs font-bold">U</span>
                 </div>
               )}
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+              <div className={`max-w-[78%] flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                   msg.role === 'user'
-                    ? 'bg-gradient-to-br from-primary-600 to-violet-600 text-white rounded-br-sm shadow-sm'
-                    : 'bg-gray-100 text-gray-900 rounded-bl-sm'
-                }`}
-              >
-                {msg.role === 'assistant' ? (
-                  <div className="prose-chat text-sm leading-relaxed">
-                    <ReactMarkdown>{msg.text}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-sm">{msg.text}</p>
-                )}
-                <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-primary-200' : 'text-gray-400'}`}>
+                    ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm shadow-lg shadow-violet-200/60'
+                    : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100/80'
+                }`}>
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-headings:font-bold prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900 prose-code:bg-violet-50 prose-code:text-violet-700 prose-code:px-1 prose-code:rounded">
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p>{msg.text}</p>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-400 px-1">
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -138,15 +162,15 @@ const CareerChatbot: React.FC = () => {
           ))}
 
           {loading && (
-            <div className="flex justify-start">
-              <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
-                <FiCpu className="w-4 h-4 text-white" />
+            <div className="flex items-end gap-2.5 animate-fade-in">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-violet-200">
+                <MdPsychology className="w-4 h-4 text-white" />
               </div>
-              <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3.5 shadow-sm border border-gray-100/80">
                 <div className="flex gap-1.5 items-center">
-                  <span className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '160ms' }} />
+                  <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '320ms' }} />
                 </div>
               </div>
             </div>
@@ -154,8 +178,8 @@ const CareerChatbot: React.FC = () => {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
-        <div className="border-t border-gray-100 p-3">
+        {/* Input Bar */}
+        <div className="border-t border-gray-100 bg-white px-4 py-3">
           <div className="flex gap-2 items-end">
             <textarea
               ref={inputRef}
@@ -163,32 +187,42 @@ const CareerChatbot: React.FC = () => {
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about careers, skills, roadmaps... (Enter to send)"
-              className="flex-1 input resize-none min-h-[44px] max-h-32"
               rows={1}
+              className="flex-1 px-4 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white transition-all resize-none min-h-[46px] max-h-32 placeholder-gray-400"
+              style={{ lineHeight: '1.5' }}
             />
             <button
               onClick={() => handleSend()}
               disabled={!input.trim() || loading}
-              className="btn-gradient p-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-11 h-11 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-200 hover:shadow-violet-300 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none flex-shrink-0"
             >
-              <FiSend className="w-4 h-4" />
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <FiSend className="w-4 h-4" />
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Prompts */}
+      {/* QUICK PROMPTS */}
       <div className="mt-4">
-        <p className="text-xs text-gray-500 mb-2 font-medium">Quick questions:</p>
+        <div className="flex items-center gap-2 mb-3">
+          <HiSparkles className="w-4 h-4 text-violet-500" />
+          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Quick Questions</p>
+        </div>
         <div className="flex flex-wrap gap-2">
-          {QUICK_PROMPTS.map(p => (
+          {QUICK_PROMPTS.map((p, idx) => (
             <button
-              key={p}
-              onClick={() => handleSend(p)}
+              key={p.text}
+              onClick={() => handleSend(p.text)}
               disabled={loading}
-              className="chip chip-gray text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ animationDelay: `${idx * 60}ms` }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-700 hover:bg-gradient-to-r hover:from-violet-50 hover:to-indigo-50 hover:border-violet-200 hover:text-violet-700 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 animate-fade-in"
             >
-              {p}
+              <span>{p.icon}</span>
+              {p.text}
             </button>
           ))}
         </div>

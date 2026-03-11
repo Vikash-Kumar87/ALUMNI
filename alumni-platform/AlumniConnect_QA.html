@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlumniConnect — Project Q&A</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6fb;
+      color: #1a1a2e;
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 40px 30px;
+      background: #fff;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, #6c63ff, #e040fb);
+      border-radius: 16px;
+      padding: 36px 32px;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+    .header p  { font-size: 1rem; opacity: 0.88; margin-top: 8px; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.22);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 999px;
+      padding: 4px 16px;
+      font-size: 0.82rem;
+      margin-top: 14px;
+      letter-spacing: 0.4px;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #6c63ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-left: 4px solid #e040fb;
+      padding-left: 12px;
+      margin: 36px 0 18px;
+    }
+
+    /* ── Q&A CARD ── */
+    .qa-card {
+      background: #fafbff;
+      border: 1px solid #ececf8;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .qa-card .q {
+      font-weight: 700;
+      color: #3a3a6e;
+      font-size: 0.97rem;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .qa-card .q-num {
+      background: linear-gradient(135deg, #6c63ff, #e040fb);
+      color: #fff;
+      border-radius: 50%;
+      min-width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+    .qa-card .a {
+      margin-top: 10px;
+      font-size: 0.93rem;
+      color: #3d3d5c;
+      padding-left: 36px;
+    }
+    .qa-card .a ul { padding-left: 18px; margin-top: 6px; }
+    .qa-card .a li { margin-bottom: 4px; }
+    .qa-card .a code {
+      background: #f0eeff;
+      color: #6c63ff;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.88rem;
+    }
+
+    /* ── TECH TABLE ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin-top: 8px;
+    }
+    th {
+      background: linear-gradient(90deg, #6c63ff22, #e040fb22);
+      color: #3a3a6e;
+      font-weight: 700;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 2px solid #ddd;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #f0eeff;
+      color: #3d3d5c;
+    }
+    tr:hover td { background: #faf8ff; }
+
+    /* ── FEATURE GRID ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .feature-item {
+      background: #f0eeff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+    }
+    .feature-item .icon { font-size: 1.1rem; }
+    .feature-item strong { color: #6c63ff; display: block; margin-bottom: 2px; }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #ececf8;
+      font-size: 0.82rem;
+      color: #999;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { background: #fff; }
+      .page { padding: 20px; }
+      .qa-card { break-inside: avoid; }
+      .section-title { break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🎓 AlumniConnect</h1>
+    <p>Intelligent Platform to Bridge Alumni &amp; Students</p>
+    <span class="badge">📋 Project Q&amp;A — Interview / Presentation Sheet</span>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 1 ─────────────────────────── -->
+  <div class="section-title">1. Project Overview</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">1</div> What is your project?</div>
+    <div class="a">
+      <strong>AlumniConnect</strong> is a full-stack web platform that connects college alumni and students through an intelligent bridge. It includes features like AI-powered mentorship matching, a career guidance chatbot, interview practice, a job board, and a discussion forum.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">2</div> Why did you build this project?</div>
+    <div class="a">
+      Students often struggle to find senior alumni for career guidance. There is no dedicated platform for job referrals, mock interviews, and skill roadmaps. AlumniConnect solves all these problems in one place with AI assistance, available 24/7.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">3</div> Who will use this project?</div>
+    <div class="a">
+      <ul>
+        <li><strong>Students</strong> — For career guidance, interview practice, job search, and finding mentors</li>
+        <li><strong>Alumni</strong> — For posting jobs, providing mentorship, and contributing to the community</li>
+        <li><strong>Admin</strong> — For managing the platform and verifying users</li>
+        <li><strong>Colleges / Universities</strong> — For digitizing their alumni network</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">4</div> What main problem does this project solve?</div>
+    <div class="a">
+      <ul>
+        <li>Students lack proper career guidance — the AI chatbot is available 24/7</li>
+        <li>Alumni networks remain disconnected — the platform keeps everyone connected</li>
+        <li>No dedicated mock interview platform — AI-generated questions and evaluation are available</li>
+        <li>Students can't connect for job referrals — an integrated job board is available</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 2 ─────────────────────────── -->
+  <div class="section-title">2. Technology Stack</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">5</div> What technologies have you used? (Tech Stack)</div>
+    <div class="a">
+      <table>
+        <tr><th>Layer</th><th>Technology</th></tr>
+        <tr><td>Frontend</td><td>React 18, TypeScript, Vite, Tailwind CSS</td></tr>
+        <tr><td>Backend</td><td>Node.js, Express.js, TypeScript</td></tr>
+        <tr><td>Authentication</td><td>Firebase Authentication (Google + Email/Password)</td></tr>
+        <tr><td>Database</td><td>Firebase Firestore + Firebase Realtime Database</td></tr>
+        <tr><td>AI Model</td><td>Groq API — LLaMA 3.3 70B Versatile</td></tr>
+        <tr><td>Frontend Hosting</td><td>Vercel</td></tr>
+        <tr><td>Backend Hosting</td><td>Render</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">6</div> Which AI model have you used and why?</div>
+    <div class="a">
+      We used the <strong>Groq API</strong> which runs the <strong>LLaMA 3.3 70B Versatile</strong> model.<br/><br/>
+      <ul>
+        <li><strong>LLaMA 3.3 70B</strong> — Meta's open-source, extremely powerful language model with 70 billion parameters</li>
+        <li><strong>Groq</strong> — The world's fastest AI inference platform; responses come in milliseconds</li>
+        <li><strong>Free Tier</strong> — Completely free for students with high rate limits</li>
+        <li>Career guidance, interview evaluation, skill roadmap — all powered by this model</li>
+      </ul>
+      <br/>Model name: <code>llama-3.3-70b-versatile</code>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">7</div> Why use Firebase and not any other database?</div>
+    <div class="a">
+      <ul>
+        <li>Firebase's free tier includes a real-time database, authentication, and cloud storage</li>
+        <li>Google Sign-In integrates in a single click</li>
+        <li>Firebase Realtime Database is perfect for real-time chat — without needing a WebSocket server</li>
+        <li>Setup is very fast — no server management needed</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">8</div> Why choose React for the frontend?</div>
+    <div class="a">
+      React 18 is component-based and allows building reusable UI pieces. TypeScript provides type safety, reducing bugs. Vite makes the build process very fast. Tailwind CSS enables quick responsive UI development without writing custom CSS.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 3 ─────────────────────────── -->
+  <div class="section-title">3. Features — Deep Dive</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">9</div> What features does the project have?</div>
+    <div class="a">
+      <div class="feature-grid">
+        <div class="feature-item"><span class="icon">🔐</span><strong>Authentication</strong>Email/Password + Google Sign-in, Role-based access</div>
+        <div class="feature-item"><span class="icon">🤝</span><strong>AI Mentor Matching</strong>AI suggests the best mentor based on the student's profile</div>
+        <div class="feature-item"><span class="icon">💬</span><strong>Career Chatbot</strong>24/7 AI career guidance, multi-turn conversation</div>
+        <div class="feature-item"><span class="icon">🎯</span><strong>Interview Practice</strong>AI generates questions and evaluates answers with a score</div>
+        <div class="feature-item"><span class="icon">💼</span><strong>Job Board</strong>Alumni post jobs/internships, students apply</div>
+        <div class="feature-item"><span class="icon">🗣️</span><strong>Discussion Forum</strong>Community Q&amp;A, upvotes, tags</div>
+        <div class="feature-item"><span class="icon">💬</span><strong>Real-time Chat</strong>1-on-1 messaging between student &amp; alumni</div>
+        <div class="feature-item"><span class="icon">🗺️</span><strong>Skill Roadmap</strong>AI generates a personalized learning path for any skill</div>
+        <div class="feature-item"><span class="icon">📄</span><strong>Resume Review</strong>AI ATS scoring + improvement suggestions</div>
+        <div class="feature-item"><span class="icon">🔍</span><strong>Skill Gap Analysis</strong>AI tells you what to learn based on your current skills</div>
+        <div class="feature-item"><span class="icon">📊</span><strong>Dashboard</strong>Analytics — user growth, charts, statistics</div>
+        <div class="feature-item"><span class="icon">🛡️</span><strong>Admin Panel</strong>User management, content moderation</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">10</div> How does the Career Chatbot work?</div>
+    <div class="a">
+      User sends a message → Backend verifies the Firebase token → Message is sent to the Groq API (LLaMA 3.3 70B) with conversation history → AI response is received → Displayed on the frontend. The complete conversation history is maintained for multi-turn chat.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">11</div> How does the Interview Practice feature work?</div>
+    <div class="a">
+      <ul>
+        <li>Student chooses a <strong>topic</strong> (e.g., React, Python) and <strong>difficulty</strong> (easy/medium/hard)</li>
+        <li>AI <strong>generates 5 questions</strong> in JSON format</li>
+        <li>Student types the answer for each question</li>
+        <li>AI <strong>evaluates each answer</strong> — providing a score (0–10), strengths, weaknesses, and a model answer</li>
+        <li>An overall performance summary is given at the end</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">12</div> What is the Skill Roadmap feature?</div>
+    <div class="a">
+      The student types any skill (e.g., "Machine Learning", "Web Development") and AI generates a <strong>step-by-step personalized learning roadmap</strong> — with resources, timeline, and priority. The roadmap is also saved on the dashboard.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 4 ─────────────────────────── -->
+  <div class="section-title">4. Architecture &amp; Security</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">13</div> What is the project architecture?</div>
+    <div class="a">
+      <strong>3-tier architecture:</strong><br/><br/>
+      <strong>Tier 1 — Frontend (Vercel):</strong> React app — UI, routing, state management<br/>
+      <strong>Tier 2 — Backend (Render):</strong> Express API — business logic, AI calls, security middleware<br/>
+      <strong>Tier 3 — Database (Firebase):</strong> Firestore (structured data) + Realtime DB (chat)<br/><br/>
+      Frontend → Backend REST API → Firebase DB + Groq AI
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">14</div> What have you done for security?</div>
+    <div class="a">
+      <ul>
+        <li><strong>Firebase Authentication</strong> — JWT token is verified with every request</li>
+        <li><strong>Helmet.js</strong> — HTTP security headers are automatically set</li>
+        <li><strong>Rate Limiting</strong> — 500 requests per 15 min per user; 50 req/min for AI</li>
+        <li><strong>CORS</strong> — only the allowed frontend URL can access the backend</li>
+        <li><strong>Environment Variables</strong> — no secret keys are hardcoded in the code</li>
+        <li><strong>Firestore Security Rules</strong> — users can only read/write their own data</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">15</div> How does authentication work?</div>
+    <div class="a">
+      User logs in (Google or Email/Password) → Firebase Authentication provides a JWT token → Frontend sends this token in the Authorization header with every API call → Backend <code>verifyToken</code> middleware verifies the token using Firebase Admin SDK → only then is the data returned.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">16</div> How is role-based access implemented?</div>
+    <div class="a">
+      During signup, the user chooses their role: <strong>Student / Alumni / Admin</strong>. This role is stored in the user document in Firebase Firestore. The Admin panel is visible only to users with the Admin role. Alumni can post jobs; students cannot.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 5 ─────────────────────────── -->
+  <div class="section-title">5. Deployment &amp; Setup</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">17</div> Where is the project deployed?</div>
+    <div class="a">
+      <ul>
+        <li><strong>Frontend</strong> — Deployed on <strong>Vercel</strong> (free tier, automatic deployment from GitHub)</li>
+        <li><strong>Backend</strong> — Deployed on <strong>Render</strong> (free tier Node.js server)</li>
+        <li><strong>Database</strong> — <strong>Firebase</strong> (on Google Cloud, free tier)</li>
+        <li>Automatically re-deployed whenever code is pushed to GitHub</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">18</div> What are the steps to run the project locally?</div>
+    <div class="a">
+      <strong>Prerequisites:</strong> Node.js 18+, Firebase project, Groq API key<br/><br/>
+      <strong>Backend:</strong><br/>
+      <code>cd backend</code> → <code>npm install</code> → add keys to <code>.env</code> file → <code>npm run dev</code><br/><br/>
+      <strong>Frontend:</strong><br/>
+      <code>cd frontend</code> → <code>npm install</code> → add Firebase config to <code>.env</code> file → <code>npm run dev</code><br/><br/>
+      In browser: <code>http://localhost:3000</code>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">19</div> Can the project be run completely for free?</div>
+    <div class="a">
+      <strong>Yes, 100% free!</strong>
+      <ul>
+        <li>Groq API — very high limits in the free tier</li>
+        <li>Firebase — free Spark plan is sufficient for students</li>
+        <li>Vercel — unlimited deployments in the free tier</li>
+        <li>Render — backend hosting in the free tier</li>
+      </ul>
+      Cost: $0 / month for normal usage.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 6 ─────────────────────────── -->
+  <div class="section-title">6. AI / Technical Deep Dive</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">20</div> What is the difference between Groq API and Gemini API? Why choose Groq?</div>
+    <div class="a">
+      <table>
+        <tr><th>Feature</th><th>Groq API</th><th>Google Gemini</th></tr>
+        <tr><td>Speed</td><td>⚡ Extremely fast (LPU chips)</td><td>Moderate</td></tr>
+        <tr><td>Model</td><td>LLaMA 3.3 70B (Meta)</td><td>Gemini Flash/Pro</td></tr>
+        <tr><td>Free Tier</td><td>Very generous limits</td><td>Limited</td></tr>
+        <tr><td>Open Source</td><td>Yes (LLaMA)</td><td>No (closed)</td></tr>
+        <tr><td>API Format</td><td>OpenAI-compatible</td><td>Custom format</td></tr>
+      </table>
+      <br/>Groq was chosen because it is the fastest and provides high limits in the free tier.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">21</div> What is the LLaMA 3.3 70B model?</div>
+    <div class="a">
+      LLaMA (Large Language Model Meta AI) is Meta's open-source AI model. <strong>70B</strong> means 70 billion parameters — it is comparable to ChatGPT in intelligence. The "Versatile" variant is optimized for general-purpose tasks — coding, writing, analysis, and question answering.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">22</div> How is real-time chat implemented?</div>
+    <div class="a">
+      Firebase Realtime Database is used. When a user sends a message, it is saved in Firebase at the <code>/chats/{chatId}/messages</code> path. Firebase's <code>onValue</code> listener on both users' frontends listens for real-time updates — as soon as a message arrives, it is instantly shown on screen without a page refresh.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">23</div> Why use TypeScript instead of JavaScript?</div>
+    <div class="a">
+      TypeScript provides <strong>type safety</strong> — runtime errors are caught at compile time. Bugs are reduced in large codebases, better autocomplete is available in the IDE, and team collaboration becomes easier.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 7 ─────────────────────────── -->
+  <div class="section-title">7. Challenges &amp; Learnings</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">24</div> What challenges did you face while building the project?</div>
+    <div class="a">
+      <ul>
+        <li><strong>CORS issues</strong> — Frontend and backend are on different domains; CORS had to be configured</li>
+        <li><strong>Rate limiting</strong> — AI API calls need to be throttled in the free tier</li>
+        <li><strong>Firebase private key</strong> — There was a newline encoding issue in environment variables</li>
+        <li><strong>Real-time chat sync</strong> — Ensuring message ordering between multiple users</li>
+        <li><strong>AI response parsing</strong> — Consistently extracting interview questions in JSON format</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">25</div> How can this project be improved further? (Future Scope)</div>
+    <div class="a">
+      <ul>
+        <li>📱 <strong>Mobile App</strong> — Android/iOS app using React Native</li>
+        <li>🎥 <strong>Video Mentorship</strong> — Video calling using WebRTC</li>
+        <li>📊 <strong>Analytics Dashboard</strong> — Alumni engagement metrics</li>
+        <li>🌐 <strong>Multi-language support</strong> — Hindi, regional languages</li>
+        <li>🤖 <strong>Resume Builder</strong> — AI-powered resume generation</li>
+        <li>🏆 <strong>Gamification</strong> — Points, badges for active users</li>
+        <li>📧 <strong>Email Notifications</strong> — New messages, job alerts</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">26</div> What did you learn from this project?</div>
+    <div class="a">
+      <ul>
+        <li>Full-stack development — React, Node.js, and TypeScript together</li>
+        <li>Firebase Authentication + Firestore + Realtime DB integration</li>
+        <li>Production-grade AI API integration with error handling and rate limiting</li>
+        <li>Deployment pipeline — Vercel (frontend) + Render (backend)</li>
+        <li>Security best practices — JWT, CORS, Helmet, rate limiting</li>
+        <li>Real-time features without WebSocket (Firebase listener)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SECTION 8 ─────────────────────────── -->
+  <div class="section-title">8. Quick Reference</div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">27</div> Where is the project GitHub / live link?</div>
+    <div class="a">
+      <ul>
+        <li>GitHub — <code>github.com/Vikash-Kumar87/ALUMNI</code></li>
+        <li>Frontend (Vercel) — Live URL available from the Vercel dashboard</li>
+        <li>Backend (Render) — API URL available from the Render dashboard</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">28</div> What are the key environment variables of the project?</div>
+    <div class="a">
+      <table>
+        <tr><th>Variable</th><th>Purpose</th></tr>
+        <tr><td><code>GROQ_API_KEY</code></td><td>Groq AI API access</td></tr>
+        <tr><td><code>FIREBASE_PROJECT_ID</code></td><td>Firebase project identifier</td></tr>
+        <tr><td><code>FIREBASE_PRIVATE_KEY</code></td><td>Firebase Admin SDK auth</td></tr>
+        <tr><td><code>FIREBASE_DATABASE_URL</code></td><td>Realtime Database URL</td></tr>
+        <tr><td><code>FRONTEND_URL</code></td><td>CORS allowed origin</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">29</div> Summarize the project in one line.</div>
+    <div class="a">
+      <em>"AlumniConnect is an AI-powered platform that connects students and alumni — career guidance, mentorship, interview practice, and job referrals, all in one place, completely free."</em>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="q"><div class="q-num">30</div> What is the industry use case of this project?</div>
+    <div class="a">
+      <ul>
+        <li><strong>EdTech startups</strong> — Companies like alumni portals are already raising millions (e.g., AlmaConnect, HiHello)</li>
+        <li><strong>Colleges</strong> — Official alumni management system</li>
+        <li><strong>Corporate HR</strong> — Internal referral and mentorship platforms</li>
+        <li>This project's scope directly aligns with products like LinkedIn and Mentorcruise</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>AlumniConnect &mdash; Built with React · Node.js · Firebase · Groq AI (LLaMA 3.3 70B)</p>
+    <p style="margin-top:6px">To save as PDF: Press <strong>Ctrl+P</strong> → Destination: <strong>Save as PDF</strong> → Save</p>
+  </div>
+
+</div>
+</body>
+</html>

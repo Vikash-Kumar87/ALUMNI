@@ -22,6 +22,7 @@ import InterviewPractice from './pages/InterviewPractice';
 import CareerChatbot from './pages/CareerChatbot';
 import AdminDashboard from './pages/AdminDashboard';
 import SkillRoadmap from './pages/SkillRoadmap';
+import PaymentSuccess from './pages/PaymentSuccess';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -160,6 +161,15 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute requiredRole="student">
                 <SkillRoadmap />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+
+          {/* Payment success — protected, no specific role */}
+          <Route path="/payment-success" element={
+            <AppLayout showNav={false}>
+              <ProtectedRoute>
+                <PaymentSuccess />
               </ProtectedRoute>
             </AppLayout>
           } />

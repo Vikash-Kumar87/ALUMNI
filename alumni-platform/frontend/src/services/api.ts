@@ -147,4 +147,18 @@ export const notificationsAPI = {
   markAllRead: () => apiService.put('/notifications/read-all'),
 };
 
+export const paymentsAPI = {
+  bookSession: (mentorId: string) =>
+    apiService.post('/payments/book-session', { mentorId }),
+  getMentorSessions: () => apiService.get('/payments/mentor-sessions'),
+  getStudentSessions: () => apiService.get('/payments/student-sessions'),
+  checkSession: (mentorId: string) =>
+    apiService.get(`/payments/check-session/${mentorId}`),
+  updateMentorSettings: (data: {
+    price_per_session?: number;
+    session_duration?: string;
+    availability?: string;
+  }) => apiService.put('/payments/mentor-settings', data),
+};
+
 export default apiService;

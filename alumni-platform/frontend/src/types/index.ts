@@ -19,6 +19,25 @@ export interface User {
   jobRole?: string;
   experience?: number;
   linkedin?: string;
+  // Mentorship pricing
+  price_per_session?: number;
+  session_duration?: string;
+  availability?: string;
+}
+
+// ===== Paid Session Types =====
+export interface PaidSession {
+  id: string;
+  student_id: string;
+  mentor_id: string;
+  amount: number;
+  commission_amount: number;
+  mentor_earning: number;
+  payment_status: 'success' | 'failed' | 'pending';
+  session_status: 'booked' | 'completed' | 'cancelled';
+  created_at: string;
+  student_name?: string;
+  mentor_name?: string;
 }
 
 // ===== Job Types =====
