@@ -86,8 +86,8 @@ const Dashboard: React.FC = () => {
           usersAPI.getStats(), jobsAPI.getAll(), discussionAPI.getAll(), mentorsAPI.getMyRequests(),
         ]);
         setStats(statsRes.data.stats);
-        setRecentJobs((jobsRes.data.jobs as Job[]).slice(0, 3));
-        setRecentDiscussions((discussRes.data.discussions as Discussion[]).slice(0, 4));
+        setRecentJobs(jobsRes.data.jobs as Job[]);
+        setRecentDiscussions(discussRes.data.discussions as Discussion[]);
         setMentorshipRequests(mentorRes.data.requests as MentorshipRequest[]);
       } catch (err) { console.error('Dashboard fetch error:', err); }
       finally { setLoading(false); }
@@ -106,11 +106,25 @@ const Dashboard: React.FC = () => {
     }],
   };
 
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return { year: d.getFullYear(), month: d.getMonth(), label: MONTH_NAMES[d.getMonth()] };
+  });
+  const countByMonth = (items: { createdAt?: string }[]) =>
+    last6Months.map(({ year, month }) =>
+      items.filter(item => {
+        if (!item.createdAt) return false;
+        const cd = new Date(item.createdAt);
+        return cd.getFullYear() === year && cd.getMonth() === month;
+      }).length
+    );
   const barData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    labels: last6Months.map(m => m.label),
     datasets: [
-      { label: 'New Users', data: [12, 19, 25, 31, 42, 55], backgroundColor: 'rgba(99,102,241,0.85)', borderRadius: 8 },
-      { label: 'Mentorships', data: [5, 9, 12, 18, 22, 30], backgroundColor: 'rgba(16,185,129,0.85)', borderRadius: 8 },
+      { label: 'Jobs Posted', data: countByMonth(recentJobs), backgroundColor: 'rgba(99,102,241,0.85)', borderRadius: 8 },
+      { label: 'Discussions', data: countByMonth(recentDiscussions), backgroundColor: 'rgba(16,185,129,0.85)', borderRadius: 8 },
     ],
   };
 
@@ -307,7 +321,7 @@ const Dashboard: React.FC = () => {
             </div>
             {loading ? <SkeletonList /> : recentJobs.length > 0 ? (
               <div className="space-y-3">
-                {recentJobs.map((job, ji) => (
+                {recentJobs.slice(0, 3).map((job, ji) => (
                   <div key={job.id}
                     className="flex items-start gap-3 p-3 rounded-xl transition-all duration-200 cursor-pointer border border-transparent"
                     style={{ animation: `fadeInUp 0.35s ease-out ${ji * 60}ms both`, background: 'rgba(249,250,251,0.8)' }}
@@ -352,7 +366,7 @@ const Dashboard: React.FC = () => {
             </div>
             {loading ? <SkeletonList /> : recentDiscussions.length > 0 ? (
               <div className="space-y-3">
-                {recentDiscussions.map((d, di) => (
+                {recentDiscussions.slice(0, 4).map((d, di) => (
                   <div key={d.id}
                     className="p-3 rounded-xl transition-all duration-200 cursor-pointer border border-transparent"
                     style={{ animation: `fadeInUp 0.35s ease-out ${di * 60}ms both`, background: 'rgba(249,250,251,0.8)' }}
