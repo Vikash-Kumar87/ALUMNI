@@ -6,18 +6,14 @@
  * never experience cold-start network errors.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
-
-// Build the health URL: strip /api suffix and append /health
-const HEALTH_URL = API_BASE.includes('://')
-  ? API_BASE.replace(/\/api\/?$/, '') + '/health'
-  : '/health';
+// Render backend URL — hardcoded so ping works even if env var changes
+const RENDER_HEALTH_URL = 'https://alumni-platform-backend-xfi0.onrender.com/health';
 
 const PING_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
 
 async function ping() {
   try {
-    await fetch(HEALTH_URL, { method: 'GET' });
+    await fetch(RENDER_HEALTH_URL, { method: 'GET' });
   } catch {
     // silently ignore — keep-alive is best-effort
   }
