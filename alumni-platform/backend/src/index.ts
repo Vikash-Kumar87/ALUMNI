@@ -19,6 +19,11 @@ import notificationRoutes from './routes/notifications';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// CRITICAL: Tell Express to trust Render's load balancer proxy.
+// Without this, ALL users appear to share the same IP, making rate limits
+// hit after just 100 total requests across ALL users combined.
+app.set('trust proxy', 1);
+
 const corsOrigin = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.trim()
   : 'http://localhost:3000';
@@ -53,13 +58,17 @@ app.options('*', cors(corsOptions));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 1000 : 100,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 500, // 500 per user per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
 });
 
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: process.env.NODE_ENV === 'development' ? 100 : 20,
+  max: process.env.NODE_ENV === 'development' ? 100 : 50, // 50 AI requests per user per minute
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { error: 'AI rate limit exceeded. Please wait before making more requests.' },
 });
 
