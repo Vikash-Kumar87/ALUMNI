@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
-import { FiEdit2, FiSave, FiX, FiLinkedin, FiBriefcase, FiBook, FiUser } from 'react-icons/fi';
+import {
+  FiEdit2, FiSave, FiX, FiLinkedin, FiBriefcase, FiBook,
+  FiUser, FiMail, FiAward, FiTarget, FiZap
+} from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+
+const SKILL_COLORS = [
+  { bg: 'rgba(238,242,255,1)', color: '#4f46e5', border: '#c7d2fe' },
+  { bg: 'rgba(245,243,255,1)', color: '#7c3aed', border: '#ddd6fe' },
+  { bg: 'rgba(236,253,245,1)', color: '#059669', border: '#6ee7b7' },
+  { bg: 'rgba(255,251,235,1)', color: '#d97706', border: '#fde68a' },
+  { bg: 'rgba(236,254,255,1)', color: '#0891b2', border: '#a5f3fc' },
+];
 
 const ProfilePage: React.FC = () => {
   const { currentUser, userProfile, refreshProfile } = useAuth();
@@ -72,209 +82,322 @@ const ProfilePage: React.FC = () => {
     setEditing(false);
   };
 
-  if (!userProfile) return <LoadingSpinner fullPage />;
+  if (!userProfile) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
+    </div>
+  );
 
   const isStudent = userProfile.role === 'student';
+  const skillsList = userProfile.skills || [];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 animate-fade-in">
-      <div className="card gradient-border mb-6">
-        {/* Profile header */}
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary-500 via-violet-500 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg ring-4 ring-primary-100 animate-breathe">
-              <span className="text-white text-3xl font-bold">
-                {userProfile.name?.[0]?.toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gradient">{userProfile.name}</h1>
-              <p className="text-gray-500 capitalize">{userProfile.role}</p>
-              {userProfile.email && (
-                <p className="text-sm text-gray-400 mt-0.5">{userProfile.email}</p>
+    <div className="relative min-h-screen overflow-hidden">
+      {/* ── Aurora background ── */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,#eef2ff 0%,#f5f3ff 35%,#ecfdf5 65%,#eff6ff 100%)' }} />
+        <div className="aurora-blob w-[500px] h-[500px] -top-28 -left-28 opacity-40"
+          style={{ background: 'radial-gradient(circle,rgba(99,102,241,0.5) 0%,rgba(139,92,246,0.25) 50%,transparent 70%)' }} />
+        <div className="aurora-blob-2 w-[450px] h-[450px] -bottom-20 -right-20 opacity-35"
+          style={{ background: 'radial-gradient(circle,rgba(16,185,129,0.45) 0%,rgba(6,182,212,0.2) 50%,transparent 70%)' }} />
+        <div className="aurora-blob w-[350px] h-[350px] top-1/3 right-1/4 opacity-20"
+          style={{ background: 'radial-gradient(circle,rgba(236,72,153,0.35) 0%,rgba(167,139,250,0.15) 50%,transparent 70%)', animationDelay: '5s' }} />
+      </div>
+
+      <div className="relative max-w-3xl mx-auto px-4 py-8">
+
+        {/* ── Hero card ── */}
+        <div className="relative rounded-3xl overflow-hidden mb-6 shadow-2xl"
+          style={{ animation: 'fadeInUp 0.45s ease-out both' }}>
+          {/* Gradient header band */}
+          <div className="h-28 sm:h-36 relative"
+            style={{ background: isStudent ? 'linear-gradient(135deg,#4f46e5,#7c3aed,#6d28d9)' : 'linear-gradient(135deg,#059669,#0891b2,#047857)' }}>
+            <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full opacity-15"
+              style={{ background: 'radial-gradient(circle,#fff,transparent 70%)' }} />
+            <div className="absolute top-4 right-4 flex gap-2">
+              {!editing ? (
+                <button onClick={() => setEditing(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-all duration-200 text-white"
+                  style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.25)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.15)'}>
+                  <FiEdit2 className="w-3.5 h-3.5" /> Edit Profile
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button onClick={handleCancel}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl text-white transition-all"
+                    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <FiX className="w-3.5 h-3.5" /> Cancel
+                  </button>
+                  <button onClick={handleSave} disabled={saving}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl text-indigo-700 transition-all duration-200 disabled:opacity-60"
+                    style={{ background: 'rgba(255,255,255,0.92)' }}>
+                    {saving ? (
+                      <span className="w-3.5 h-3.5 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin" />
+                    ) : <FiSave className="w-3.5 h-3.5" />}
+                    {saving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
               )}
             </div>
           </div>
 
-          {!editing ? (
-            <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-2 text-sm">
-              <FiEdit2 className="w-4 h-4" /> Edit Profile
-            </button>
-          ) : (
-            <div className="flex gap-2">
-              <button onClick={handleCancel} className="btn-secondary flex items-center gap-2 text-sm">
-                <FiX className="w-4 h-4" /> Cancel
-              </button>
-              <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2 text-sm">
-                <FiSave className="w-4 h-4" />{saving ? 'Saving...' : 'Save'}
-              </button>
+          {/* Profile info body */}
+          <div className="bg-white/90 backdrop-blur-sm px-6 pt-14 pb-6 border border-gray-100 rounded-b-3xl relative">
+            {/* Avatar — overlaps band */}
+            <div className="absolute -top-10 left-6">
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl ring-4 ring-white"
+                style={{ background: isStudent ? 'linear-gradient(135deg,#6366f1,#7c3aed,#4f46e5)' : 'linear-gradient(135deg,#10b981,#059669,#0891b2)' }}>
+                <span className="text-white text-3xl font-extrabold">
+                  {userProfile.name?.[0]?.toUpperCase() ?? '?'}
+                </span>
+              </div>
             </div>
-          )}
+
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-extrabold text-gray-900">{userProfile.name}</h1>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+                    style={isStudent
+                      ? { background: 'rgba(238,242,255,1)', color: '#4f46e5' }
+                      : { background: 'rgba(236,253,245,1)', color: '#059669' }}>
+                    {isStudent ? '🎓 Student' : '💼 Alumni'}
+                  </span>
+                  {userProfile.branch && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+                      {userProfile.branch}
+                    </span>
+                  )}
+                </div>
+                {userProfile.email && (
+                  <p className="flex items-center gap-1.5 text-sm text-gray-400 mt-2">
+                    <FiMail className="w-3.5 h-3.5" />{userProfile.email}
+                  </p>
+                )}
+              </div>
+              {/* Quick stats */}
+              <div className="flex gap-3">
+                {[
+                  { label: 'Skills', val: skillsList.length },
+                  ...(isStudent
+                    ? [{ label: 'Year', val: userProfile.year ?? '—' }]
+                    : [{ label: 'Exp', val: userProfile.experience !== undefined ? `${userProfile.experience}y` : '—' }]),
+                ].map(({ label, val }) => (
+                  <div key={label} className="text-center px-4 py-2.5 rounded-2xl border"
+                    style={{ background: 'rgba(248,250,252,0.9)', borderColor: '#e5e7eb' }}>
+                    <p className="text-lg font-extrabold text-gray-900">{val}</p>
+                    <p className="text-[10px] text-gray-400 font-medium">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* About */}
+            <div className="mt-5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
+                  <FiUser className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-sm font-bold text-gray-700">About</span>
+              </div>
+              {editing ? (
+                <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none bg-white/80"
+                  rows={3} placeholder="Tell others about yourself…" />
+              ) : (
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {userProfile.bio || <span className="text-gray-400 italic">No bio added yet.</span>}
+                </p>
+              )}
+            </div>
+
+            {/* Name edit */}
+            {editing && (
+              <div className="mt-4">
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Full Name</label>
+                <input type="text" value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white/80" />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Role badge */}
-        <div className="flex gap-2 mb-6">
-          <span className={`badge ${isStudent ? 'badge-blue' : 'badge-green'}`}>
-            {isStudent ? '🎓 Student' : '💼 Alumni'}
-          </span>
-          {userProfile.branch && <span className="badge bg-gray-100 text-gray-700">{userProfile.branch}</span>}
-        </div>
-
-        {/* Bio */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <FiUser className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">About</span>
+        {/* ── Skills card ── */}
+        <div className="bg-white/85 backdrop-blur-sm rounded-2xl border border-gray-100 p-6 shadow-sm mb-6"
+          style={{ animation: 'fadeInUp 0.45s ease-out 120ms both' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 20px 40px rgba(99,102,241,0.1)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#8b5cf6,#a855f7)' }}>
+              <FiZap className="w-3.5 h-3.5 text-white" />
+            </div>
+            <h3 className="font-bold text-gray-900">Skills</h3>
+            {!editing && <span className="ml-auto text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{skillsList.length} skills</span>}
           </div>
           {editing ? (
-            <textarea
-              value={form.bio}
-              onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-              className="input"
-              rows={3}
-              placeholder="Tell others about yourself..."
-            />
+            <input type="text" value={form.skills}
+              onChange={e => setForm(f => ({ ...f, skills: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white/80"
+              placeholder="React, Python, Node.js… (comma separated)" />
+          ) : skillsList.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {skillsList.map((s, i) => {
+                const c = SKILL_COLORS[i % SKILL_COLORS.length];
+                return (
+                  <span key={s}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-xl border"
+                    style={{ background: c.bg, color: c.color, borderColor: c.border,
+                      animation: `fadeInUp 0.3s ease-out ${i * 40}ms both` }}>
+                    {s}
+                  </span>
+                );
+              })}
+            </div>
           ) : (
-            <p className="text-gray-600 text-sm">{userProfile.bio || 'No bio added yet.'}</p>
+            <p className="text-gray-400 text-sm italic">No skills added yet</p>
           )}
         </div>
 
-        {/* Name (editable) */}
-        {editing && (
-          <div className="mb-4">
-            <label className="label">Full Name</label>
-            <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" />
+        {/* ── Academic / Professional card ── */}
+        <div className="bg-white/85 backdrop-blur-sm rounded-2xl border border-gray-100 p-6 shadow-sm mb-6"
+          style={{ animation: 'fadeInUp 0.45s ease-out 240ms both' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = isStudent ? '0 20px 40px rgba(99,102,241,0.1)' : '0 20px 40px rgba(16,185,129,0.1)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}>
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center"
+              style={{ background: isStudent ? 'linear-gradient(135deg,#6366f1,#7c3aed)' : 'linear-gradient(135deg,#10b981,#059669)' }}>
+              <FiBriefcase className="w-3.5 h-3.5 text-white" />
+            </div>
+            <h3 className="font-bold text-gray-900">{isStudent ? 'Academic Details' : 'Professional Details'}</h3>
           </div>
-        )}
-      </div>
 
-      {/* Skills */}
-      <div className="card card-hover-glow mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <FiBook className="w-4 h-4 text-gray-400" />
-          <h3 className="font-semibold text-gray-900">Skills</h3>
-        </div>
-        {editing ? (
-          <input
-            type="text"
-            value={form.skills}
-            onChange={e => setForm(f => ({ ...f, skills: e.target.value }))}
-            className="input"
-            placeholder="React, Python, Node.js... (comma separated)"
-          />
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {userProfile.skills?.length > 0
-              ? userProfile.skills.map(s => <span key={s} className="badge-blue">{s}</span>)
-              : <p className="text-gray-400 text-sm">No skills added yet</p>}
-          </div>
-        )}
-      </div>
-
-      {/* Role-specific fields */}
-      <div className="card mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <FiBriefcase className="w-4 h-4 text-gray-400" />
-          <h3 className="font-semibold text-gray-900">{isStudent ? 'Academic Details' : 'Professional Details'}</h3>
-        </div>
-
-        {isStudent ? (
-          editing ? (
+          {isStudent ? (
+            editing ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Branch</label>
+                    <input type="text" value={form.branch} onChange={e => setForm(f => ({ ...f, branch: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white/80" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Year</label>
+                    <select value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white/80">
+                      {[1,2,3,4].map(y => <option key={y} value={y}>Year {y}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Interests (comma separated)</label>
+                  <input type="text" value={form.interests} onChange={e => setForm(f => ({ ...f, interests: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white/80" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Career Goals</label>
+                  <textarea value={form.goals} onChange={e => setForm(f => ({ ...f, goals: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none bg-white/80" rows={3} />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {[
+                  { label: 'Branch', val: userProfile.branch || '—', icon: FiBook },
+                  { label: 'Year', val: `Year ${userProfile.year || '—'}`, icon: FiAward },
+                ].map(({ label, val, icon: Icon }, i) => (
+                  <div key={label} className="flex items-center justify-between p-3 rounded-xl"
+                    style={{ background: 'rgba(248,250,252,0.8)', animation: `fadeInUp 0.3s ease-out ${i * 60}ms both` }}>
+                    <span className="flex items-center gap-2 text-sm text-gray-500">
+                      <Icon className="w-4 h-4 text-indigo-400" />{label}
+                    </span>
+                    <span className="text-sm font-bold text-gray-800">{val}</span>
+                  </div>
+                ))}
+                {(userProfile.interests?.length ?? 0) > 0 && (
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(248,250,252,0.8)' }}>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                      <FiTarget className="w-4 h-4 text-indigo-400" />Interests
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {userProfile.interests!.map((interest, i) => (
+                        <span key={interest} className="text-xs font-semibold px-2.5 py-1 rounded-lg"
+                          style={{ background: 'rgba(245,243,255,1)', color: '#7c3aed', borderColor: '#ddd6fe',
+                            animation: `fadeInUp 0.3s ease-out ${i * 40}ms both` }}>
+                          {interest}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {userProfile.goals && (
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(248,250,252,0.8)' }}>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-1.5">
+                      <FiTarget className="w-4 h-4 text-indigo-400" />Career Goals
+                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed">{userProfile.goals}</p>
+                  </div>
+                )}
+              </div>
+            )
+          ) : editing ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Branch</label>
-                  <input type="text" value={form.branch} onChange={e => setForm(f => ({ ...f, branch: e.target.value }))} className="input" />
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Company</label>
+                  <input type="text" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white/80" />
                 </div>
                 <div>
-                  <label className="label">Year</label>
-                  <select value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} className="input">
-                    {[1,2,3,4].map(y => <option key={y} value={y}>Year {y}</option>)}
-                  </select>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Job Role</label>
+                  <input type="text" value={form.jobRole} onChange={e => setForm(f => ({ ...f, jobRole: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white/80" />
                 </div>
               </div>
-              <div>
-                <label className="label">Interests (comma separated)</label>
-                <input type="text" value={form.interests} onChange={e => setForm(f => ({ ...f, interests: e.target.value }))} className="input" />
-              </div>
-              <div>
-                <label className="label">Career Goals</label>
-                <textarea value={form.goals} onChange={e => setForm(f => ({ ...f, goals: e.target.value }))} className="input" rows={3} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Experience (years)</label>
+                  <input type="number" min="0" value={form.experience} onChange={e => setForm(f => ({ ...f, experience: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white/80" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">LinkedIn</label>
+                  <input type="url" value={form.linkedin} onChange={e => setForm(f => ({ ...f, linkedin: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white/80" />
+                </div>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Branch</span>
-                <span className="font-medium">{userProfile.branch || '—'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Year</span>
-                <span className="font-medium">Year {userProfile.year || '—'}</span>
-              </div>
-              {userProfile.interests && userProfile.interests.length > 0 && (
-                <div className="text-sm">
-                  <span className="text-gray-500">Interests:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {userProfile.interests.map(i => <span key={i} className="badge bg-purple-100 text-purple-700">{i}</span>)}
-                  </div>
+              {[
+                { label: 'Company', val: userProfile.company || '—' },
+                { label: 'Role', val: userProfile.jobRole || '—' },
+                { label: 'Experience', val: userProfile.experience !== undefined ? `${userProfile.experience} years` : '—' },
+              ].map(({ label, val }, i) => (
+                <div key={label} className="flex items-center justify-between p-3 rounded-xl"
+                  style={{ background: 'rgba(248,250,252,0.8)', animation: `fadeInUp 0.3s ease-out ${i * 60}ms both` }}>
+                  <span className="text-sm text-gray-500">{label}</span>
+                  <span className="text-sm font-bold text-gray-800">{val}</span>
+                </div>
+              ))}
+              {userProfile.linkedin && (
+                <div className="flex items-center justify-between p-3 rounded-xl"
+                  style={{ background: 'rgba(236,253,245,0.9)' }}>
+                  <span className="text-sm text-gray-500">LinkedIn</span>
+                  <a href={userProfile.linkedin} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                    <FiLinkedin className="w-4 h-4" /> View Profile
+                  </a>
                 </div>
               )}
-              {userProfile.goals && (
-                <div className="text-sm">
-                  <span className="text-gray-500 block mb-1">Goals:</span>
-                  <p className="text-gray-700">{userProfile.goals}</p>
-                </div>
-              )}
             </div>
-          )
-        ) : editing ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Company</label>
-                <input type="text" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} className="input" />
-              </div>
-              <div>
-                <label className="label">Job Role</label>
-                <input type="text" value={form.jobRole} onChange={e => setForm(f => ({ ...f, jobRole: e.target.value }))} className="input" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Experience (years)</label>
-                <input type="number" min="0" value={form.experience} onChange={e => setForm(f => ({ ...f, experience: e.target.value }))} className="input" />
-              </div>
-              <div>
-                <label className="label">LinkedIn</label>
-                <input type="url" value={form.linkedin} onChange={e => setForm(f => ({ ...f, linkedin: e.target.value }))} className="input" />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Company</span>
-              <span className="font-medium">{userProfile.company || '—'}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Role</span>
-              <span className="font-medium">{userProfile.jobRole || '—'}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Experience</span>
-              <span className="font-medium">{userProfile.experience !== undefined ? `${userProfile.experience} years` : '—'}</span>
-            </div>
-            {userProfile.linkedin && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">LinkedIn</span>
-                <a href={userProfile.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary-600 flex items-center gap-1">
-                  <FiLinkedin className="w-4 h-4" /> View Profile
-                </a>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+
       </div>
     </div>
   );

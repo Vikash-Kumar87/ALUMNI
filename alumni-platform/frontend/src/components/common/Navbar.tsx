@@ -333,24 +333,61 @@ const Navbar: React.FC = () => {
                     {profileOpen && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-card-hover border border-gray-100 py-1.5 z-50 animate-scale-in">
-                          <div className="px-4 py-3 border-b border-gray-100">
-                            <p className="text-sm font-bold text-gray-900 truncate">{userProfile?.name}</p>
-                            <p className="text-xs text-gray-400 capitalize mt-0.5">{userProfile?.role}</p>
+                        <div className="absolute right-0 mt-2 w-60 rounded-2xl shadow-2xl border border-white/20 py-2 z-50 overflow-hidden"
+                          style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', animation: 'fadeInUp 0.2s ease-out both' }}>
+                          {/* User info header */}
+                          <div className="px-4 pb-3 pt-2 border-b border-gray-100">
+                            <div className="flex items-center gap-3">
+                              {userProfile?.avatar ? (
+                                <img src={userProfile.avatar} alt="" className="w-10 h-10 rounded-xl object-cover ring-2 ring-indigo-100" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"
+                                  style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
+                                  <span className="text-white font-bold text-sm">
+                                    {userProfile?.name?.[0]?.toUpperCase() || 'U'}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-gray-900 truncate">{userProfile?.name}</p>
+                                <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 capitalize"
+                                  style={userProfile?.role === 'alumni'
+                                    ? { background: 'rgba(236,253,245,1)', color: '#059669' }
+                                    : { background: 'rgba(238,242,255,1)', color: '#4f46e5' }}>
+                                  {userProfile?.role === 'alumni' ? '💼 Alumni' : '🎓 Student'}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <Link
-                            to="/profile"
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                            onClick={() => setProfileOpen(false)}
-                          >
-                            <FiUser className="w-4 h-4 text-gray-400" /> My Profile
-                          </Link>
-                          <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
-                          >
-                            <FiLogOut className="w-4 h-4" /> Sign Out
-                          </button>
+                          {/* Menu items */}
+                          <div className="py-1 px-2">
+                            <Link
+                              to="/profile"
+                              className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 rounded-xl transition-all duration-150"
+                              onClick={() => setProfileOpen(false)}
+                              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(238,242,255,0.8)'}
+                              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = ''}>
+                              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                                style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
+                                <FiUser className="w-3.5 h-3.5 text-white" />
+                              </div>
+                              My Profile
+                            </Link>
+                          </div>
+                          <div className="px-2 pb-2">
+                            <button
+                              onClick={handleLogout}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-xl transition-all duration-150"
+                              style={{ color: '#e11d48' }}
+                              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,241,242,0.9)'}
+                              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = ''}>
+                              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                                style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)' }}>
+                                <FiLogOut className="w-3.5 h-3.5 text-white" />
+                              </div>
+                              Sign Out
+                            </button>
+                          </div>
                         </div>
                       </>
                     )}
