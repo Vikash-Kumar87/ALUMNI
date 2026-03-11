@@ -162,7 +162,6 @@ const SignupPage: React.FC = () => {
                 }`}
                   style={i <= currentStepIndex ? {
                     background: 'linear-gradient(135deg,#6366f1,#7c3aed)',
-                    ringColor: i === currentStepIndex ? 'rgba(99,102,241,0.2)' : undefined,
                     boxShadow: i === currentStepIndex ? '0 0 0 4px rgba(99,102,241,0.18), 0 4px 12px rgba(99,102,241,0.3)' : undefined,
                   } : {}}>
                   {i < currentStepIndex ? <FiCheck className="w-4 h-4" /> : i + 1}
