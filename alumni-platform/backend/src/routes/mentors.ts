@@ -1,20 +1,37 @@
 import { Router, Response } from 'express';
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// Helper: get set of all valid Firebase Auth UIDs
+async function getValidAuthUids(): Promise<Set<string>> {
+  const validUids = new Set<string>();
+  let nextPageToken: string | undefined;
+  do {
+    const result = await auth.listUsers(1000, nextPageToken);
+    result.users.forEach(u => validUids.add(u.uid));
+    nextPageToken = result.pageToken;
+  } while (nextPageToken);
+  return validUids;
+}
+
 // GET /mentors - Get all alumni mentors with optional skill filtering
 router.get('/', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { skill, search } = req.query;
 
-    let query = db.collection('users').where('role', '==', 'alumni');
-    const snapshot = await query.get();
+    const [snapshot, validUids] = await Promise.all([
+      db.collection('users').where('role', '==', 'alumni').get(),
+      getValidAuthUids(),
+    ]);
 
-    let mentors = snapshot.docs.map(doc => doc.data());
+    // Only return alumni whose Firebase Auth account still exists
+    let mentors = snapshot.docs
+      .filter(doc => validUids.has(doc.id))
+      .map(doc => doc.data());
 
     if (skill && typeof skill === 'string') {
       mentors = mentors.filter(m =>

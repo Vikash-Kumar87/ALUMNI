@@ -1,23 +1,37 @@
 import { Router, Response } from 'express';
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// Helper: get set of all valid Firebase Auth UIDs
+async function getValidAuthUids(): Promise<Set<string>> {
+  const validUids = new Set<string>();
+  let nextPageToken: string | undefined;
+  do {
+    const result = await auth.listUsers(1000, nextPageToken);
+    result.users.forEach(u => validUids.add(u.uid));
+    nextPageToken = result.pageToken;
+  } while (nextPageToken);
+  return validUids;
+}
+
 // GET /jobs - Get all job postings
 router.get('/', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { type, search } = req.query;
 
-    let snapshot = await db
-      .collection('jobs')
-      .orderBy('createdAt', 'desc')
-      .limit(100)
-      .get();
+    const [snapshot, validUids] = await Promise.all([
+      db.collection('jobs').orderBy('createdAt', 'desc').limit(100).get(),
+      getValidAuthUids(),
+    ]);
 
-    let jobs = snapshot.docs.map(doc => doc.data());
+    // Only show jobs posted by users with active accounts
+    let jobs = snapshot.docs
+      .map(doc => doc.data())
+      .filter(j => !j.postedBy || validUids.has(String(j.postedBy)));
 
     if (type && typeof type === 'string') {
       jobs = jobs.filter(j => j.type === type);

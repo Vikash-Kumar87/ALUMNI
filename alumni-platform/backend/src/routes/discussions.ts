@@ -1,21 +1,35 @@
 import { Router, Response } from 'express';
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// Helper: get set of all valid Firebase Auth UIDs
+async function getValidAuthUids(): Promise<Set<string>> {
+  const validUids = new Set<string>();
+  let nextPageToken: string | undefined;
+  do {
+    const result = await auth.listUsers(1000, nextPageToken);
+    result.users.forEach(u => validUids.add(u.uid));
+    nextPageToken = result.pageToken;
+  } while (nextPageToken);
+  return validUids;
+}
+
 // GET /discussion - Get all discussions
 router.get('/', verifyToken, async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const snapshot = await db
-      .collection('discussions')
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
+    const [snapshot, validUids] = await Promise.all([
+      db.collection('discussions').orderBy('createdAt', 'desc').limit(50).get(),
+      getValidAuthUids(),
+    ]);
 
-    const discussions = snapshot.docs.map(doc => doc.data());
+    // Only show discussions posted by users with active accounts
+    const discussions = snapshot.docs
+      .map(doc => doc.data())
+      .filter(d => !d.postedBy || validUids.has(String(d.postedBy)));
     res.status(200).json({ discussions });
   } catch (error) {
     console.error('Get discussions error:', error);
