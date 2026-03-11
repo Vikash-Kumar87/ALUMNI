@@ -1,0 +1,20 @@
+{
+  "name": "AlumniConnect — Intelligent Alumni-Student Platform",
+  "short_name": "AlumniConnect",
+  "description": "Mentorship, AI career guidance, interview practice, and job referrals for your college network.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0b1e",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["education", "social", "productivity"]
+}

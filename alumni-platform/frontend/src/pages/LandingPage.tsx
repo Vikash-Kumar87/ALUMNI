@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   FiUsers, FiBriefcase, FiMessageCircle, FiAward, FiArrowRight,
   FiCheckCircle, FiStar, FiZap, FiBook, FiTarget, FiCode,
-  FiTrendingUp, FiShield, FiGlobe, FiMenu, FiX
+  FiTrendingUp, FiShield, FiGlobe, FiMenu, FiX, FiDownload
 } from 'react-icons/fi';
 
 const FEATURES = [
@@ -78,6 +78,23 @@ const LandingPage: React.FC = () => {
   const { currentUser } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => { setInstalled(true); setInstallPrompt(null); });
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    const prompt = installPrompt as BeforeInstallPromptEvent;
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === 'accepted') { setInstalled(true); setInstallPrompt(null); }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -253,6 +270,19 @@ const LandingPage: React.FC = () => {
             <a href="#features" className="text-base text-white/80 hover:text-white font-semibold px-8 py-3.5 border-2 border-white/20 rounded-2xl hover:border-white/40 hover:bg-white/10 transition-all w-full sm:w-auto text-center">
               Explore Features
             </a>
+            {installPrompt && !installed && (
+              <button
+                onClick={handleInstall}
+                className="flex items-center justify-center gap-2 text-base font-semibold px-8 py-3.5 rounded-2xl w-full sm:w-auto bg-white/10 hover:bg-white/20 border-2 border-emerald-400/50 hover:border-emerald-400 text-emerald-300 hover:text-emerald-200 transition-all duration-200 backdrop-blur-sm"
+              >
+                <FiDownload className="w-4 h-4" /> Install App
+              </button>
+            )}
+            {installed && (
+              <span className="flex items-center gap-2 text-sm text-emerald-400 font-semibold px-4 py-2 bg-emerald-400/10 rounded-2xl border border-emerald-400/30">
+                <FiCheckCircle className="w-4 h-4" /> App Installed!
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/40 animate-fade-in delay-300">
             {['No credit card required', 'Free to use', 'Secure & private'].map(t => (
