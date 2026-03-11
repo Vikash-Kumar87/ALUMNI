@@ -4,11 +4,28 @@ import { verifyToken, requireAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
+// Helper: get set of all valid Firebase Auth UIDs
+async function getValidAuthUids(): Promise<Set<string>> {
+  const validUids = new Set<string>();
+  let nextPageToken: string | undefined;
+  do {
+    const result = await auth.listUsers(1000, nextPageToken);
+    result.users.forEach(u => validUids.add(u.uid));
+    nextPageToken = result.pageToken;
+  } while (nextPageToken);
+  return validUids;
+}
+
 // GET /users - Get all users (admin only)
 router.get('/', verifyToken, requireAdmin, async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const snapshot = await db.collection('users').get();
-    const users = snapshot.docs.map(doc => doc.data());
+    const [snapshot, validUids] = await Promise.all([
+      db.collection('users').get(),
+      getValidAuthUids(),
+    ]);
+    const users = snapshot.docs
+      .filter(doc => validUids.has(doc.id))
+      .map(doc => doc.data());
     res.status(200).json({ users });
   } catch (error) {
     console.error('Get users error:', error);
@@ -16,22 +33,29 @@ router.get('/', verifyToken, requireAdmin, async (_req: AuthRequest, res: Respon
   }
 });
 
-// GET /users/list - Get basic user list for chat (all authenticated users)
+// GET /users/list - Get basic user list for chat (only real Auth users)
 router.get('/list', verifyToken, async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const snapshot = await db.collection('users').get();
-    const users = snapshot.docs.map(doc => {
-      const d = doc.data();
-      return {
-        uid: d.uid,
-        name: d.name,
-        role: d.role,
-        avatar: d.avatar || null,
-        branch: d.branch || null,        year: d.year || null,
-        skills: d.skills || [],        company: d.company || null,
-        jobRole: d.jobRole || null,
-      };
-    });
+    const [snapshot, validUids] = await Promise.all([
+      db.collection('users').get(),
+      getValidAuthUids(),
+    ]);
+    const users = snapshot.docs
+      .filter(doc => validUids.has(doc.id))
+      .map(doc => {
+        const d = doc.data();
+        return {
+          uid: d.uid,
+          name: d.name,
+          role: d.role,
+          avatar: d.avatar || null,
+          branch: d.branch || null,
+          year: d.year || null,
+          skills: d.skills || [],
+          company: d.company || null,
+          jobRole: d.jobRole || null,
+        };
+      });
     res.status(200).json({ users });
   } catch (error) {
     console.error('Get users list error:', error);
@@ -39,23 +63,26 @@ router.get('/list', verifyToken, async (_req: AuthRequest, res: Response): Promi
   }
 });
 
-// GET /users/stats - Get platform statistics
+// GET /users/stats - Get platform statistics (only real Auth users)
 router.get('/stats', verifyToken, async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const [usersSnap, jobsSnap, discussionsSnap, mentorshipSnap] = await Promise.all([
+    const [usersSnap, jobsSnap, discussionsSnap, mentorshipSnap, validUids] = await Promise.all([
       db.collection('users').get(),
       db.collection('jobs').get(),
       db.collection('discussions').get(),
       db.collection('mentorship').where('status', '==', 'active').get(),
+      getValidAuthUids(),
     ]);
 
-    const users = usersSnap.docs.map(doc => doc.data());
+    const users = usersSnap.docs
+      .filter(doc => validUids.has(doc.id))
+      .map(doc => doc.data());
     const students = users.filter(u => u.role === 'student').length;
     const alumni = users.filter(u => u.role === 'alumni').length;
 
     res.status(200).json({
       stats: {
-        totalUsers: usersSnap.size,
+        totalUsers: users.length,
         students,
         alumni,
         activeJobs: jobsSnap.size,
