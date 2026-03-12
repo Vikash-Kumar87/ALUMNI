@@ -71,6 +71,7 @@ const VideoCallPage: React.FC = () => {
   /* ── Load Jitsi & start call ───────────────────────────────── */
   const startCall = () => {
     setLoading(true);
+    setCallStarted(true); // show container immediately so jitsiContainerRef.current is non-null AND visible
 
     const initJitsi = () => {
       if (!jitsiContainerRef.current) return;
