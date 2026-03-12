@@ -1,7 +1,19 @@
 import { Router, Response } from 'express';
 import Groq from 'groq-sdk';
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
+
+// Helper: get set of all valid Firebase Auth UIDs
+async function getValidAuthUids(): Promise<Set<string>> {
+  const validUids = new Set<string>();
+  let nextPageToken: string | undefined;
+  do {
+    const result = await auth.listUsers(1000, nextPageToken);
+    result.users.forEach(u => validUids.add(u.uid));
+    nextPageToken = result.pageToken;
+  } while (nextPageToken);
+  return validUids;
+}
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -161,9 +173,14 @@ router.post('/mentor-recommend', verifyToken, async (req: AuthRequest, res: Resp
       branch: string;
     };
 
-    // Get all alumni
-    const alumniSnapshot = await db.collection('users').where('role', '==', 'alumni').get();
-    const alumni = alumniSnapshot.docs.map(doc => doc.data());
+    // Get all alumni — only those with active Firebase Auth accounts
+    const [alumniSnapshot, validUids] = await Promise.all([
+      db.collection('users').where('role', '==', 'alumni').get(),
+      getValidAuthUids(),
+    ]);
+    const alumni = alumniSnapshot.docs
+      .map(doc => doc.data())
+      .filter(a => a.uid && validUids.has(String(a.uid)));
 
     if (alumni.length === 0) {
       res.status(200).json({ recommendations: [], message: 'No alumni available yet' });
