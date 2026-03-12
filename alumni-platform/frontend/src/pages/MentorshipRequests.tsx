@@ -333,9 +333,15 @@ const MentorshipRequests: React.FC = () => {
       {/* ── Student Profile Modal ── */}
       {selectedStudent && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedStudent(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto z-50 overflow-hidden rounded-2xl shadow-2xl"
-            style={{ background: 'rgba(255,255,255,0.97)', animation: 'fadeInUp 0.3s ease-out both' }}>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4 py-6"
+            onClick={() => setSelectedStudent(null)}
+          >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+            style={{ background: 'rgba(255,255,255,0.97)', animation: 'fadeInUp 0.3s ease-out both' }}
+            onClick={e => e.stopPropagation()}
+          >
             {/* Cover band */}
             <div className="h-24 relative" style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed,#6d28d9)' }}>
               <div className="absolute -bottom-10 left-6">
@@ -399,6 +405,7 @@ const MentorshipRequests: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
           </div>
         </>
       )}
