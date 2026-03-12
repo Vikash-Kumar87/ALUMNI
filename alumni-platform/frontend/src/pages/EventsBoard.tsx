@@ -386,7 +386,19 @@ const EventsBoard: React.FC = () => {
                           {event.isOnline ? (
                             <>
                               <FiVideo className="w-4 h-4" />
-                              <span>Online Event</span>
+                              {isRegistered ? (
+                                <a
+                                  href={event.meetingLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 hover:underline font-semibold truncate"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Join Meeting
+                                </a>
+                              ) : (
+                                <span>Online Event</span>
+                              )}
                             </>
                           ) : (
                             <>
