@@ -149,22 +149,26 @@ router.put('/request/:id', verifyToken, async (req: AuthRequest, res: Response):
       : `${alumniName} is not available for mentorship right now.`;
     await createNotification(data.studentId, notifType, notifTitle, notifBody, '/mentors');
 
-    // Send email notification for acceptance
+    // Send email notification for acceptance (fire-and-forget)
     if (status === 'accepted') {
-      try {
-        const studentDoc = await db.collection('users').doc(data.studentId).get();
-        const studentData = studentDoc.data() as { email?: string; name?: string; emailNotifications?: { mentorship?: boolean } } | undefined;
-        const alumniData = alumniDoc.data() as { name?: string; jobRole?: string; company?: string };
-        if (studentData?.email && studentData?.emailNotifications?.mentorship !== false) {
-          await sendMentorshipAcceptedEmail(
-            studentData.email,
-            studentData.name || 'there',
-            alumniName,
-            alumniData.jobRole,
-            alumniData.company,
-          );
+      (async () => {
+        try {
+          const studentDoc = await db.collection('users').doc(data.studentId).get();
+          const studentData = studentDoc.data() as { email?: string; name?: string; emailNotifications?: { mentorship?: boolean } } | undefined;
+          const alumniData = alumniDoc.data() as { name?: string; jobRole?: string; company?: string };
+          if (studentData?.email && studentData?.emailNotifications?.mentorship !== false) {
+            await sendMentorshipAcceptedEmail(
+              studentData.email,
+              studentData.name || 'there',
+              alumniName,
+              alumniData.jobRole,
+              alumniData.company,
+            );
+          }
+        } catch (err) {
+          console.error('Failed to send mentorship acceptance email:', err);
         }
-      } catch { /* email failure should never break the response */ }
+      })();
     }
 
     res.status(200).json({ message: `Mentorship request ${status}` });
