@@ -7,7 +7,8 @@ import {
   FiHome, FiUsers, FiMessageSquare, FiBriefcase, FiCpu,
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
   FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
-  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget, FiStar, FiChevronDown
+  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget, FiStar, FiChevronDown, FiCalendar,
+  FiVideo, FiClock
 } from 'react-icons/fi';
 
 /* ── Notification type config ── */
@@ -18,6 +19,10 @@ const NOTIF_CONFIG: Record<NotificationType, { icon: React.ElementType; grad: st
   new_job:             { icon: FiBriefcase,   grad: 'linear-gradient(135deg,#f59e0b,#d97706)', bg: 'rgba(255,251,235,0.9)', label: 'New Job' },
   discussion_answer:   { icon: FiMessageSquare, grad: 'linear-gradient(135deg,#8b5cf6,#a855f7)', bg: 'rgba(245,243,255,0.9)', label: 'New Answer' },
   message:             { icon: FiMail,        grad: 'linear-gradient(135deg,#06b6d4,#0891b2)', bg: 'rgba(236,254,255,0.9)', label: 'New Message' },
+  video_call:          { icon: FiVideo,       grad: 'linear-gradient(135deg,#22c55e,#16a34a)', bg: 'rgba(240,253,244,0.9)', label: 'Video Call' },
+  event_created:       { icon: FiCalendar,    grad: 'linear-gradient(135deg,#6366f1,#7c3aed)', bg: 'rgba(238,242,255,0.9)', label: 'New Event' },
+  event_reminder:      { icon: FiClock,       grad: 'linear-gradient(135deg,#f59e0b,#d97706)', bg: 'rgba(255,251,235,0.9)', label: 'Event Reminder' },
+  event_cancelled:     { icon: FiXCircle,     grad: 'linear-gradient(135deg,#f43f5e,#e11d48)', bg: 'rgba(255,241,242,0.9)', label: 'Event Cancelled' },
 };
 
 function timeAgo(iso: string) {
@@ -114,6 +119,7 @@ const Navbar: React.FC = () => {
     ? [
         { to: '/dashboard', label: 'Dashboard', icon: FiHome },
         { to: '/mentorship-requests', label: 'Students', icon: FiUserCheck },
+        { to: '/events', label: 'Events', icon: FiCalendar },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Post Jobs', icon: FiBriefcase },
         { to: '/success-story', label: 'My Story', icon: FiStar },
@@ -122,6 +128,7 @@ const Navbar: React.FC = () => {
     : [
         { to: '/dashboard', label: 'Dashboard', icon: FiHome },
         { to: '/mentors', label: 'Mentors', icon: FiUsers },
+        { to: '/events', label: 'Events', icon: FiCalendar },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Jobs', icon: FiBriefcase },
         { to: '/chat', label: 'Messages', icon: FiMessageCircle },

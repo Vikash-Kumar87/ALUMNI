@@ -29,6 +29,7 @@ import WeeklyCareerReport from './pages/WeeklyCareerReport';
 import SkillGapAnalyzer from './pages/SkillGapAnalyzer';
 import SuccessStoryGenerator from './pages/SuccessStoryGenerator';
 import VideoCallPage from './pages/VideoCallPage';
+import EventsBoard from './pages/EventsBoard';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -145,6 +146,13 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute>
                 <JobBoard />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+          <Route path="/events" element={
+            <AppLayout>
+              <ProtectedRoute>
+                <EventsBoard />
               </ProtectedRoute>
             </AppLayout>
           } />

@@ -221,4 +221,30 @@ export const paymentsAPI = {
   }) => apiService.put('/payments/mentor-settings', data),
 };
 
+export const eventsAPI = {
+  getAll: (params?: { type?: string; status?: string; organizer?: string; upcoming?: boolean }) =>
+    apiService.get('/events', { params }),
+  getById: (id: string) => apiService.get(`/events/${id}`),
+  create: (data: {
+    title: string;
+    description: string;
+    type: 'webinar' | 'workshop' | 'networking' | 'conference' | 'meetup';
+    date: string;
+    time: string;
+    duration: number;
+    location?: string;
+    meetingLink?: string;
+    maxAttendees?: number;
+    isOnline: boolean;
+    tags: string[];
+  }) => apiService.post('/events', data),
+  update: (id: string, data: Record<string, unknown>) =>
+    apiService.put(`/events/${id}`, data),
+  delete: (id: string) => apiService.delete(`/events/${id}`),
+  register: (id: string) => apiService.post(`/events/${id}/register`),
+  unregister: (id: string) => apiService.delete(`/events/${id}/register`),
+  getAttendees: (id: string) => apiService.get(`/events/${id}/attendees`),
+  getMyRegistrations: () => apiService.get('/events/my/registrations'),
+};
+
 export default apiService;

@@ -255,7 +255,11 @@ export type NotificationType =
   | 'mentorship_rejected'
   | 'new_job'
   | 'discussion_answer'
-  | 'message';
+  | 'message'
+  | 'video_call'
+  | 'event_created'
+  | 'event_reminder'
+  | 'event_cancelled';
 
 export interface Notification {
   id: string;

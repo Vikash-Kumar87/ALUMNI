@@ -13,7 +13,10 @@ export type NotificationType =
   | 'new_job'
   | 'discussion_answer'
   | 'message'
-  | 'video_call';
+  | 'video_call'
+  | 'event_created'
+  | 'event_reminder'
+  | 'event_cancelled';
 
 export interface Notification {
   id: string;
