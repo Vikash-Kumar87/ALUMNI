@@ -184,29 +184,6 @@ const CoverLetterGenerator: React.FC = () => {
       margin-bottom: 14px;
       font-weight: 400;
     }
-    /* Footer */
-    .footer {
-      border-top: 1.5px solid ${accent}25;
-      margin: 0 48px;
-      padding: 18px 0 40px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .footer-left {
-      font-size: 11px;
-      color: #9ca3af;
-    }
-    .footer-badge {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      color: ${accent};
-      text-transform: uppercase;
-      background: ${accent}12;
-      padding: 5px 12px;
-      border-radius: 100px;
-    }
     /* Print tweaks */
     @media print {
       body { background: #fff; }
@@ -228,11 +205,6 @@ const CoverLetterGenerator: React.FC = () => {
     </div>
 
     <div class="body">${paragraphs}</div>
-
-    <div class="footer">
-      <span class="footer-left">${today}</span>
-      <span class="footer-badge">✦ AlumniConnect</span>
-    </div>
   </div>
 
   <script>
