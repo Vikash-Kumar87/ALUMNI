@@ -337,6 +337,56 @@ Only return valid JSON, no additional text.`;
   }
 });
 
+// POST /ai/job-match - AI Job Match Score
+router.post('/job-match', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { jobTitle, jobDescription, jobRequirements, candidateSkills, candidateBio, candidateGoals } = req.body;
+
+    if (!jobTitle || !jobDescription) {
+      res.status(400).json({ error: 'Job title and description are required' });
+      return;
+    }
+
+    const prompt = `You are an expert AI recruiter. Analyze how well a candidate matches a job posting.
+
+Job Posting:
+- Title: ${jobTitle}
+- Description: ${jobDescription}
+- Requirements: ${Array.isArray(jobRequirements) ? jobRequirements.join(', ') : jobRequirements || 'Not specified'}
+
+Candidate Profile:
+- Skills: ${candidateSkills || 'Not specified'}
+- Bio: ${candidateBio || 'Not provided'}
+- Goals: ${candidateGoals || 'Not provided'}
+
+Return ONLY a valid JSON object with NO other text:
+{
+  "matchScore": number (0-100),
+  "matchLevel": "Excellent" | "Good" | "Fair" | "Low",
+  "summary": "2-3 sentence match summary",
+  "matchedSkills": ["skill1", "skill2"],
+  "missingSkills": ["skill3", "skill4"],
+  "suggestions": [
+    { "title": "Short title", "detail": "Specific actionable advice" }
+  ],
+  "verdict": "One sentence recommendation"
+}`;
+
+    const responseText = (await generateText(prompt)).trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+    res.status(200).json({ result });
+  } catch (error) {
+    console.error('Job match error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait a moment and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable. Please try again.' });
+  }
+});
+
 // POST /ai/skill-gap - Analyze skill gap
 router.post('/skill-gap', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

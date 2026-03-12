@@ -138,6 +138,15 @@ export const aiAPI = {
     apiService.post('/ai/skill-roadmap', { goal, currentSkills, timeframe }),
   reviewResume: (resumeText: string, targetRole: string) =>
     apiService.post('/ai/resume-review', { resumeText, targetRole }),
+  matchJob: (
+    jobTitle: string,
+    jobDescription: string,
+    jobRequirements: string[],
+    candidateSkills: string,
+    candidateBio: string,
+    candidateGoals: string,
+  ) =>
+    apiService.post('/ai/job-match', { jobTitle, jobDescription, jobRequirements, candidateSkills, candidateBio, candidateGoals }),
   analyzeSkillGap: (currentSkills: string[], targetRole: string) =>
     apiService.post('/ai/skill-gap', { currentSkills, targetRole }),
 };
