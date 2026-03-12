@@ -23,6 +23,11 @@ export interface User {
   price_per_session?: number;
   session_duration?: string;
   availability?: string;
+  // Email notification preferences
+  emailNotifications?: {
+    messages?: boolean;
+    mentorship?: boolean;
+  };
 }
 
 // ===== Paid Session Types =====

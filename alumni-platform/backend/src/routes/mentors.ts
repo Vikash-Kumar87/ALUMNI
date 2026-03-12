@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { db, auth } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications';
+import { sendMentorshipAcceptedEmail } from '../services/email';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -147,6 +148,24 @@ router.put('/request/:id', verifyToken, async (req: AuthRequest, res: Response):
       ? `${alumniName} has accepted your mentorship request! Start a conversation.`
       : `${alumniName} is not available for mentorship right now.`;
     await createNotification(data.studentId, notifType, notifTitle, notifBody, '/mentors');
+
+    // Send email notification for acceptance
+    if (status === 'accepted') {
+      try {
+        const studentDoc = await db.collection('users').doc(data.studentId).get();
+        const studentData = studentDoc.data() as { email?: string; name?: string; emailNotifications?: { mentorship?: boolean } } | undefined;
+        const alumniData = alumniDoc.data() as { name?: string; jobRole?: string; company?: string };
+        if (studentData?.email && studentData?.emailNotifications?.mentorship !== false) {
+          await sendMentorshipAcceptedEmail(
+            studentData.email,
+            studentData.name || 'there',
+            alumniName,
+            alumniData.jobRole,
+            alumniData.company,
+          );
+        }
+      } catch { /* email failure should never break the response */ }
+    }
 
     res.status(200).json({ message: `Mentorship request ${status}` });
   } catch (error) {

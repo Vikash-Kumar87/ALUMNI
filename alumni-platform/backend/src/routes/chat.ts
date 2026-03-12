@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { db } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications';
+import { sendNewMessageEmail } from '../services/email';
 
 const router = Router();
 
@@ -52,7 +53,21 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<v
       `New message from ${senderData?.name || 'Someone'}`,
       message.length > 80 ? message.slice(0, 80) + '…' : message,
       '/chat',
-    ).catch(() => { /* non-critical — don't fail the request */ });
+    ).catch(() => { /* non-critical */ });
+
+    // Send email notification if recipient has opted in
+    try {
+      const receiverDoc = await db.collection('users').doc(receiverId).get();
+      const receiverData = receiverDoc.data() as { email?: string; name?: string; emailNotifications?: { messages?: boolean } } | undefined;
+      if (receiverData?.email && receiverData?.emailNotifications?.messages !== false) {
+        await sendNewMessageEmail(
+          receiverData.email,
+          receiverData.name || 'there',
+          senderData?.name || 'Someone',
+          message.length > 120 ? message.slice(0, 120) + '…' : message,
+        );
+      }
+    } catch { /* email failure should never break the chat */ }
 
     res.status(201).json({ message: 'Message sent', data: { ...messageData, id: newMsgRef.id } });
   } catch (error) {

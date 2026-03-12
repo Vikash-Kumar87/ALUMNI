@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import {
   FiEdit2, FiSave, FiX, FiLinkedin, FiBriefcase, FiBook,
-  FiUser, FiMail, FiAward, FiTarget, FiZap
+  FiUser, FiMail, FiAward, FiTarget, FiZap, FiBell, FiMessageCircle, FiUserCheck
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -19,6 +19,11 @@ const ProfilePage: React.FC = () => {
   const { currentUser, userProfile, refreshProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [emailPrefs, setEmailPrefs] = useState<{ messages: boolean; mentorship: boolean }>(() => ({
+    messages: userProfile?.emailNotifications?.messages !== false,
+    mentorship: userProfile?.emailNotifications?.mentorship !== false,
+  }));
+  const [emailSaving, setEmailSaving] = useState<'messages' | 'mentorship' | null>(null);
 
   const [form, setForm] = useState({
     name: userProfile?.name || '',
@@ -33,6 +38,25 @@ const ProfilePage: React.FC = () => {
     experience: userProfile?.experience?.toString() || '0',
     linkedin: userProfile?.linkedin || '',
   });
+
+  const handleEmailToggle = async (key: 'messages' | 'mentorship') => {
+    if (!currentUser) return;
+    const newVal = !emailPrefs[key];
+    setEmailPrefs(prev => ({ ...prev, [key]: newVal }));
+    setEmailSaving(key);
+    try {
+      await usersAPI.updateProfile(currentUser.uid, {
+        emailNotifications: { ...emailPrefs, [key]: newVal },
+      });
+      await refreshProfile();
+      toast.success(newVal ? 'Email notifications turned on' : 'Email notifications turned off');
+    } catch {
+      setEmailPrefs(prev => ({ ...prev, [key]: !newVal })); // revert on failure
+      toast.error('Failed to save preference');
+    } finally {
+      setEmailSaving(null);
+    }
+  };
 
   const handleSave = async () => {
     if (!currentUser || !userProfile) return;
@@ -261,6 +285,94 @@ const ProfilePage: React.FC = () => {
           ) : (
             <p className="text-gray-400 text-sm italic">No skills added yet</p>
           )}
+        </div>
+
+        {/* ── Email Notification Settings card ── */}
+        <div className="bg-white/85 backdrop-blur-sm rounded-2xl border border-gray-100 p-6 shadow-sm mb-6"
+          style={{ animation: 'fadeInUp 0.45s ease-out 180ms both' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 20px 40px rgba(99,102,241,0.08)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}>
+          {/* Card header */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+              style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
+              <FiBell className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Email Notifications</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Choose when to receive email alerts</p>
+            </div>
+            <span className="ml-auto text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide"
+              style={{ background: 'rgba(238,242,255,1)', color: '#6366f1' }}>Beta</span>
+          </div>
+
+          <div className="space-y-3">
+            {([
+              {
+                key: 'messages' as const,
+                icon: FiMessageCircle,
+                grad: 'linear-gradient(135deg,#06b6d4,#0891b2)',
+                bg: 'rgba(236,254,255,0.8)',
+                border: '#a5f3fc',
+                label: 'New Messages',
+                desc: 'Get an email when someone sends you a message',
+              },
+              {
+                key: 'mentorship' as const,
+                icon: FiUserCheck,
+                grad: 'linear-gradient(135deg,#10b981,#059669)',
+                bg: 'rgba(236,253,245,0.8)',
+                border: '#6ee7b7',
+                label: 'Mentorship Updates',
+                desc: 'Get an email when your request is accepted',
+              },
+            ]).map(({ key, icon: Icon, grad, bg, border, label, desc }, i) => {
+              const enabled = emailPrefs[key];
+              const saving = emailSaving === key;
+              return (
+                <div
+                  key={key}
+                  className="flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300"
+                  style={{
+                    background: enabled ? bg : 'rgba(248,250,252,0.6)',
+                    borderColor: enabled ? border : '#e5e7eb',
+                    animation: `fadeInUp 0.35s ease-out ${i * 80}ms both`,
+                  }}
+                >
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-all duration-300"
+                    style={{ background: enabled ? grad : '#e5e7eb' }}>
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-bold transition-colors duration-200 ${enabled ? 'text-gray-900' : 'text-gray-400'}`}>{label}</p>
+                    <p className={`text-xs mt-0.5 transition-colors duration-200 ${enabled ? 'text-gray-500' : 'text-gray-400'}`}>{desc}</p>
+                  </div>
+                  {/* Animated pill toggle */}
+                  <button
+                    onClick={() => handleEmailToggle(key)}
+                    disabled={saving}
+                    aria-label={`Toggle ${label}`}
+                    className="flex-shrink-0 relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none disabled:opacity-60"
+                    style={{ background: enabled ? 'linear-gradient(135deg,#6366f1,#7c3aed)' : '#d1d5db' }}
+                  >
+                    <span
+                      className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 flex items-center justify-center"
+                      style={{ transform: enabled ? 'translateX(24px)' : 'translateX(0)' }}
+                    >
+                      {saving && (
+                        <span className="w-3 h-3 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin absolute" />
+                      )}
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-gray-400 mt-4 flex items-center gap-1.5">
+            <FiMail className="w-3.5 h-3.5" />
+            Emails are sent to <strong className="text-gray-500">{userProfile?.email}</strong>
+          </p>
         </div>
 
         {/* ── Academic / Professional card ── */}
