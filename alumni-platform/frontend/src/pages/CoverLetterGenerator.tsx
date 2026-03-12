@@ -74,15 +74,200 @@ const CoverLetterGenerator: React.FC = () => {
 
   const handleDownload = () => {
     if (!result) return;
-    const text = `Subject: ${result.subject}\n\n${result.body}`;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `cover-letter-${company.replace(/\s+/g, '-').toLowerCase()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Letter downloaded!');
+
+    const toneColor: Record<string, string> = {
+      professional: '#4f46e5',
+      enthusiastic: '#f59e0b',
+      creative:     '#ec4899',
+    };
+    const accent = toneColor[result.tone] ?? '#4f46e5';
+    const today  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const paragraphs = result.body
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(l => `<p>${l}</p>`)
+      .join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cover Letter – ${company}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f8f7ff;
+      color: #1e1b4b;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: 0;
+      box-shadow: 0 0 40px rgba(0,0,0,0.12);
+    }
+    /* Header strip */
+    .header {
+      background: linear-gradient(135deg, ${accent}ee 0%, ${accent}99 100%);
+      padding: 36px 48px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      right: -40px;
+      top: -40px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      right: 60px;
+      bottom: -60px;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .author-name {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .author-role {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    .meta-row {
+      display: flex;
+      gap: 24px;
+      margin-top: 18px;
+    }
+    .meta-chip {
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 100px;
+      letter-spacing: 0.3px;
+    }
+    /* Subject line */
+    .subject-card {
+      margin: 32px 48px 0;
+      background: linear-gradient(135deg, ${accent}12, ${accent}06);
+      border: 1.5px solid ${accent}30;
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+    .subject-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: ${accent};
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .subject-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e1b4b;
+    }
+    /* Body */
+    .body {
+      padding: 28px 48px 48px;
+    }
+    .body p {
+      font-size: 13.5px;
+      line-height: 1.85;
+      color: #374151;
+      margin-bottom: 14px;
+      font-weight: 400;
+    }
+    /* Footer */
+    .footer {
+      border-top: 1.5px solid ${accent}25;
+      margin: 0 48px;
+      padding: 18px 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-left {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .footer-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: ${accent};
+      text-transform: uppercase;
+      background: ${accent}12;
+      padding: 5px 12px;
+      border-radius: 100px;
+    }
+    /* Print tweaks */
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; margin: 0; width: 100%; min-height: 100%; }
+      @page { margin: 0; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div class="author-name">${name || 'Applicant'}</div>
+      <div class="author-role">Applying for &nbsp;·&nbsp; ${role} at ${company}</div>
+      <div class="meta-row">
+        <span class="meta-chip">📅 ${today}</span>
+        <span class="meta-chip">🎩 ${result.tone.charAt(0).toUpperCase() + result.tone.slice(1)} tone</span>
+        <span class="meta-chip">📝 ${result.wordCount} words</span>
+      </div>
+    </div>
+
+    <div class="subject-card">
+      <div class="subject-label">Subject Line</div>
+      <div class="subject-text">${result.subject}</div>
+    </div>
+
+    <div class="body">${paragraphs}</div>
+
+    <div class="footer">
+      <span class="footer-left">Generated with AlumniConnect AI &nbsp;·&nbsp; ${today}</span>
+      <span class="footer-badge">✦ AlumniConnect</span>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function () {
+      window.print();
+      window.onafterprint = function () { window.close(); };
+    };
+  </script>
+</body>
+</html>`;
+
+    const popup = window.open('', '_blank', 'width=900,height=700');
+    if (!popup) { toast.error('Allow pop-ups to save the PDF'); return; }
+    popup.document.write(html);
+    popup.document.close();
+    toast.success('Print dialog opened — choose "Save as PDF" 📄');
   };
 
   const inputCls =
