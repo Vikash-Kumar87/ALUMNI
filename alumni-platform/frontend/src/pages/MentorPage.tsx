@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   FiSearch, FiStar, FiSend, FiBriefcase, FiLinkedin,
-  FiCpu, FiCalendar, FiClock, FiDollarSign, FiCheckCircle, FiX, FiAward,
+  FiCpu, FiCalendar, FiClock, FiCheckCircle, FiX, FiAward,
 } from 'react-icons/fi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -180,7 +180,6 @@ const MentorPage: React.FC = () => {
           {/* Pricing */}
           {mentor.price_per_session && (
             <div className="flex items-center gap-2 mb-3 bg-violet-50 border border-violet-100 rounded-xl px-3 py-2">
-              <FiDollarSign className="w-4 h-4 text-violet-600 shrink-0" />
               <span className="text-sm font-bold text-violet-700">₹{mentor.price_per_session}</span>
               {mentor.session_duration && (
                 <><span className="text-violet-300">·</span><FiClock className="w-3 h-3 text-violet-500" /><span className="text-xs text-violet-600">{mentor.session_duration}</span></>
@@ -448,7 +447,7 @@ const MentorPage: React.FC = () => {
                         </div>
                       )}
                       <div className="border-t border-violet-200 pt-3 flex justify-between items-center">
-                        <span className="font-bold text-gray-700 flex items-center gap-1.5"><FiDollarSign className="w-4 h-4" /> Total</span>
+                        <span className="font-bold text-gray-700 flex items-center gap-1.5"><span className="text-base">₹</span> Total</span>
                         <span className="text-lg font-bold text-violet-600">₹{bookingModal.mentor.price_per_session}</span>
                       </div>
                     </div>
@@ -476,7 +475,7 @@ const MentorPage: React.FC = () => {
                     <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
                     <div className="absolute inset-0 rounded-full border-4 border-t-violet-600 animate-spin" />
                     <div className="absolute inset-2 rounded-full bg-violet-50 flex items-center justify-center">
-                      <FiDollarSign className="w-6 h-6 text-violet-500" />
+                      <span className="text-2xl font-bold text-violet-500">₹</span>
                     </div>
                   </div>
                   <h3 className="text-lg font-bold text-gray-800 mb-1">Processing Payment…</h3>

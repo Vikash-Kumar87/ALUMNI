@@ -4,7 +4,7 @@ import { Job } from '../types';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
-  FiBriefcase, FiSearch, FiPlus, FiMapPin, FiExternalLink, FiX, FiDollarSign, FiClock, FiUser
+  FiBriefcase, FiSearch, FiPlus, FiMapPin, FiExternalLink, FiX, FiClock, FiUser
 } from 'react-icons/fi';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -375,7 +375,7 @@ const JobBoard: React.FC = () => {
                       )}
                       {job.salary && (
                         <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
-                          <FiDollarSign className="w-2.5 h-2.5" />{job.salary}
+                          <span className="text-xs font-semibold">₹</span>{job.salary}
                         </span>
                       )}
                     </div>

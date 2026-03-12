@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, Link, Navigate } from 'react-router-dom';
-import { FiCheckCircle, FiMessageCircle, FiHome, FiClock, FiDollarSign } from 'react-icons/fi';
+import { FiCheckCircle, FiMessageCircle, FiHome, FiClock } from 'react-icons/fi';
 
 interface SessionState {
   mentorName: string;
@@ -35,7 +35,7 @@ const PaymentSuccess: React.FC = () => {
           </div>
           {amount && (
             <div className="flex justify-between items-center">
-              <span className="text-gray-500 flex items-center gap-1"><FiDollarSign className="w-3.5 h-3.5" /> Amount</span>
+              <span className="text-gray-500 flex items-center gap-1"><span className="font-semibold">₹</span> Amount</span>
               <span className="font-semibold text-green-600">₹{amount}</span>
             </div>
           )}
