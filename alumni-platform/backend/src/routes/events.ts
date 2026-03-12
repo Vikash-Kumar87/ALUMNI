@@ -72,8 +72,27 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<v
       tags
     } = req.body;
 
+    // Enhanced validation
     if (!title || !description || !type || !date || !time || !duration) {
       res.status(400).json({ error: 'Required fields: title, description, type, date, time, duration' });
+      return;
+    }
+
+    // Validate date format
+    if (isNaN(Date.parse(`${date}T${time}`))) {
+      res.status(400).json({ error: 'Invalid date or time format' });
+      return;
+    }
+
+    // Validate online event requirements
+    if (isOnline && !meetingLink?.trim()) {
+      res.status(400).json({ error: 'Meeting link is required for online events' });
+      return;
+    }
+
+    // Validate offline event requirements
+    if (!isOnline && !location?.trim()) {
+      res.status(400).json({ error: 'Location is required for in-person events' });
       return;
     }
 
@@ -90,7 +109,7 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<v
       duration,
       location: location?.trim(),
       meetingLink: meetingLink?.trim(),
-      maxAttendees: maxAttendees || null,
+      maxAttendees: maxAttendees ? parseInt(maxAttendees.toString()) : undefined,
       isOnline: Boolean(isOnline),
       organizer: {
         id: organizerId,

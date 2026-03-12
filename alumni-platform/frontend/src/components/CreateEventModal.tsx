@@ -95,11 +95,20 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onEventCre
         tags: formData.tags.filter(tag => tag.trim().length > 0),
       };
 
+      console.log('Creating event with data:', eventData); // Debug log
+
       const response = await eventsAPI.create(eventData);
+      console.log('Event created successfully:', response.data); // Debug log
+      
+      toast.success('Event created successfully!');
       onEventCreated(response.data.event);
+      onClose();
     } catch (err: any) {
       console.error('Create event error:', err);
-      toast.error(err.response?.data?.error || 'Failed to create event');
+      console.error('Error response:', err.response?.data); // Debug log
+      
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to create event';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
