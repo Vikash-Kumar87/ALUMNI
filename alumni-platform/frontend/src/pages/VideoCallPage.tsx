@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { chatAPI } from '../services/api';
+import { chatAPI, notificationsAPI } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhone, FiCopy,
-  FiCheck, FiUsers, FiMaximize2, FiMinimize2, FiArrowLeft, FiShare2, FiMessageCircle,
+  FiCheck, FiUsers, FiMaximize2, FiMinimize2, FiArrowLeft, FiShare2, FiMessageCircle, FiSend,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -41,6 +41,10 @@ const VideoCallPage: React.FC = () => {
   const [timer, setTimer] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Mentorship video call feature
+  const [mentoredStudents, setMentoredStudents] = useState<Array<{ studentId: string; studentName: string; studentEmail: string }>>([]);
+  const [invitationSending, setInvitationSending] = useState<string | null>(null);
+
   /* ── Cleanup on unmount ─────────────────────────────────────── */
   useEffect(() => {
     return () => {
@@ -64,6 +68,32 @@ const VideoCallPage: React.FC = () => {
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [callStarted]);
+
+  /* ── Fetch mentored students (for alumni only) ────────────────── */
+  useEffect(() => {
+    const fetchMentoredStudents = async () => {
+      try {
+        if (userProfile?.role !== 'alumni') return;
+        
+        const response = await chatAPI.getMentorshipRequests();
+        const acceptedRequests = response.data.requests.filter((req: any) => req.status === 'accepted');
+        
+        const students = acceptedRequests.map((req: any) => ({
+          studentId: req.studentId,
+          studentName: req.studentName || 'Unknown Student',
+          studentEmail: req.studentEmail || '',
+        }));
+        
+        setMentoredStudents(students);
+      } catch (err) {
+        console.error('Failed to fetch mentored students:', err);
+      }
+    };
+    
+    if (userProfile?.role === 'alumni') {
+      fetchMentoredStudents();
+    }
+  }, [userProfile?.role]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -168,6 +198,27 @@ const VideoCallPage: React.FC = () => {
     setCopied(true);
     toast.success('Call link copied!');
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  /* ── Send video call invitation to mentored student ────────── */
+  const sendVideoCallInvitation = async (studentId: string) => {
+    try {
+      setInvitationSending(studentId);
+      const callLink = `${window.location.origin}/video-call?room=${rawRoom}&peer=${encodeURIComponent(userProfile?.name || 'Alumni')}`;
+      
+      await notificationsAPI.sendVideoCallInvitation(
+        studentId,
+        callLink,
+        userProfile?.name || 'An Alumni',
+      );
+      
+      toast.success('Video call invitation sent!');
+      setInvitationSending(null);
+    } catch (err) {
+      toast.error('Failed to send invitation');
+      setInvitationSending(null);
+      console.error('Send invitation error:', err);
+    }
   };
 
   /* ── End call ──────────────────────────────────────────────── */
@@ -343,6 +394,55 @@ const VideoCallPage: React.FC = () => {
                   {copied ? <FiCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FiCopy className="w-3.5 h-3.5" />}
                 </button>
               </div>
+
+              {/* Mentored students section (alumni only) */}
+              {userProfile?.role === 'alumni' && mentoredStudents.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mt-10 w-full max-w-xs"
+                >
+                  <div className="mb-4 flex items-center gap-2 px-4">
+                    <FiUsers className="w-4 h-4 text-indigo-300" />
+                    <h3 className="text-sm font-semibold text-white/80">Your Mentees</h3>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {mentoredStudents.map((student) => (
+                      <motion.div
+                        key={student.studentId}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center justify-between px-4 py-3 rounded-xl"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{student.studentName}</p>
+                          <p className="text-xs text-white/40 truncate">{student.studentEmail}</p>
+                        </div>
+                        <button
+                          onClick={() => sendVideoCallInvitation(student.studentId)}
+                          disabled={invitationSending === student.studentId}
+                          className="ml-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 text-white disabled:opacity-50"
+                          style={{ background: invitationSending === student.studentId ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.8)', border: '1px solid rgba(99,102,241,0.4)' }}
+                        >
+                          {invitationSending === student.studentId ? (
+                            <>
+                              <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                            </>
+                          ) : (
+                            <>
+                              <FiSend className="w-3 h-3" />
+                              Send
+                            </>
+                          )}
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
               <style>{`@keyframes shine{from{left:-100%}to{left:200%}}`}</style>
             </motion.div>

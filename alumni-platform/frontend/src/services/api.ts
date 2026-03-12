@@ -127,6 +127,7 @@ export const chatAPI = {
   ) => apiService.post('/chat', { receiverId, message, ...extra }),
   getConversations: () => apiService.get('/chat/conversations'),
   getMessages: (chatRoomId: string) => apiService.get(`/chat/${chatRoomId}`),
+  getMentorshipRequests: () => apiService.get('/mentors/my-requests'),
 };
 
 export const aiAPI = {
@@ -202,6 +203,8 @@ export const notificationsAPI = {
     roomName: string,
     callLink: string,
   ) => apiService.post('/notifications/video-call', { recipientId, callerName, roomName, callLink }),
+  sendVideoCallInvitation: (studentId: string, callLink: string, alumniName: string) =>
+    apiService.post('/notifications/video-call-invitation', { studentId, callLink, alumniName }),
 };
 
 export const paymentsAPI = {

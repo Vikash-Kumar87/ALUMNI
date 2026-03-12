@@ -166,4 +166,68 @@ router.post('/video-call', verifyToken, async (req: AuthRequest, res: Response):
   }
 });
 
+// POST /notifications/video-call-invitation — send video call invitation to a mentored student
+router.post('/video-call-invitation', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const alumniUid = req.user?.uid;
+    const { studentId, callLink, alumniName } = req.body;
+
+    if (!studentId || !callLink || !alumniName) {
+      res.status(400).json({ error: 'studentId, callLink, and alumniName are required' });
+      return;
+    }
+
+    // Prevent self-notification
+    if (studentId === alumniUid) {
+      res.status(200).json({ message: 'self-call ignored' });
+      return;
+    }
+
+    // Verify that the student has a mentorship request from this alumni (status: accepted)
+    const mentorshipSnapshot = await db
+      .collection('mentorship')
+      .where('studentId', '==', studentId)
+      .where('alumniId', '==', alumniUid)
+      .where('status', '==', 'accepted')
+      .get();
+
+    if (mentorshipSnapshot.empty) {
+      res.status(403).json({ error: 'No active mentorship with this student' });
+      return;
+    }
+
+    // In-app notification
+    await createNotification(
+      studentId,
+      'video_call',
+      `🎬 Mentorship Video Call from ${alumniName}`,
+      `${alumniName} is inviting you to a video call — join now!`,
+      callLink,
+    );
+
+    // Email notification (fire-and-forget)
+    (async () => {
+      try {
+        const studentDoc = await db.collection('users').doc(studentId).get();
+        const student = studentDoc.data();
+        if (student?.email && student?.emailNotifications?.messages !== false) {
+          await sendVideoCallEmail(
+            student.email,
+            student.name || 'there',
+            alumniName,
+            callLink,
+          );
+        }
+      } catch (err) {
+        console.error('Failed to send video call invitation email:', err);
+      }
+    })();
+
+    res.status(200).json({ message: 'Video call invitation sent' });
+  } catch (error) {
+    console.error('Video call invitation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
