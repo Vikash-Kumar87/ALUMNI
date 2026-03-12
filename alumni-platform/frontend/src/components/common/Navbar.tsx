@@ -7,7 +7,7 @@ import {
   FiHome, FiUsers, FiMessageSquare, FiBriefcase, FiCpu,
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
   FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
-  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2
+  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget
 } from 'react-icons/fi';
 
 /* ── Notification type config ── */
@@ -124,6 +124,7 @@ const Navbar: React.FC = () => {
         { to: '/resume', label: 'Resume AI', icon: FiFileText },
         { to: '/cover-letter', label: 'Cover Letter', icon: FiEdit2 },
         { to: '/weekly-report', label: 'Weekly AI', icon: FiBarChart2 },
+        { to: '/skill-gap', label: 'Skill Gap', icon: FiTarget },
         { to: '/chat', label: 'Messages', icon: FiMessageSquare },
       ];
 

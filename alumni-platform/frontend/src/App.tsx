@@ -26,6 +26,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import ResumeAnalyzer from './pages/ResumeAnalyzer';
 import CoverLetterGenerator from './pages/CoverLetterGenerator';
 import WeeklyCareerReport from './pages/WeeklyCareerReport';
+import SkillGapAnalyzer from './pages/SkillGapAnalyzer';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -190,6 +191,15 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute requiredRole="student">
                 <WeeklyCareerReport />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+
+          {/* Skill Gap Analyzer — student only */}
+          <Route path="/skill-gap" element={
+            <AppLayout>
+              <ProtectedRoute requiredRole="student">
+                <SkillGapAnalyzer />
               </ProtectedRoute>
             </AppLayout>
           } />
