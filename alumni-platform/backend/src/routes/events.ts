@@ -107,9 +107,6 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<v
       date,
       time,
       duration,
-      location: location?.trim(),
-      meetingLink: meetingLink?.trim(),
-      maxAttendees: maxAttendees ? parseInt(maxAttendees.toString()) : undefined,
       isOnline: Boolean(isOnline),
       organizer: {
         id: organizerId,
@@ -124,6 +121,17 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<v
       createdAt: now,
       updatedAt: now,
     };
+
+    // Only add location and meetingLink if they have values (avoid undefined)
+    if (location?.trim()) {
+      event.location = location.trim();
+    }
+    if (meetingLink?.trim()) {
+      event.meetingLink = meetingLink.trim();
+    }
+    if (maxAttendees && parseInt(maxAttendees.toString()) > 0) {
+      event.maxAttendees = parseInt(maxAttendees.toString());
+    }
 
     await db.collection('events').doc(eventId).set(event);
     res.status(201).json({ event, message: 'Event created successfully' });
@@ -140,20 +148,39 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response): Promise<vo
     
     let query: admin.firestore.Query<admin.firestore.DocumentData> | admin.firestore.CollectionReference<admin.firestore.DocumentData> = db.collection('events');
 
+    // Apply filters one by one to avoid composite index requirements
     if (type) {
       query = query.where('type', '==', type);
-    }
-
-    if (status) {
-      query = query.where('status', '==', status);
-    } else if (upcoming === 'true') {
-      query = query.where('status', '==', 'upcoming');
     }
 
     if (organizer) {
       query = query.where('organizer.id', '==', organizer);
     }
 
+    // For status and upcoming, prioritize status filter but avoid ordering by date when filtered
+    if (status) {
+      query = query.where('status', '==', status);
+      // Get without ordering first
+      const snapshot = await query.get();
+      const events = snapshot.docs
+        .map(doc => doc.data() as Event)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort in memory
+      
+      res.status(200).json({ events });
+      return;
+    } else if (upcoming === 'true') {
+      query = query.where('status', '==', 'upcoming');
+      // Get without ordering first
+      const snapshot = await query.get();
+      const events = snapshot.docs
+        .map(doc => doc.data() as Event)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort in memory
+      
+      res.status(200).json({ events });
+      return;
+    }
+
+    // For queries without status filter, we can still order by date
     const snapshot = await query.orderBy('date', 'asc').get();
     const events = snapshot.docs.map(doc => doc.data() as Event);
 
