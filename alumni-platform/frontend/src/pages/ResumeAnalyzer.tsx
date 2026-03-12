@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { aiAPI } from '../services/api';
 import {
   FiUpload, FiFileText, FiCheckCircle, FiAlertCircle, FiZap,
   FiTarget, FiTrendingUp, FiList, FiArrowRight, FiRefreshCw, FiInfo,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import * as pdfjsLib from 'pdfjs-dist';
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).href;
 
 /* ── Types ── */
 interface Suggestion { section: string; issue: string; fix: string; }
@@ -78,9 +80,40 @@ const ResumeAnalyzer: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [review, setReview] = useState<ResumeReview | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'suggestions' | 'keywords' | 'actions'>('overview');
+  const [pdfFileName, setPdfFileName] = useState('');
+  const [pdfParsing, setPdfParsing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePdfUpload = async (file: File) => {
+    if (file.type !== 'application/pdf') { toast.error('Please upload a valid PDF file'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('PDF must be under 5 MB'); return; }
+    setPdfParsing(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pages: string[] = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items
+          .map((item: unknown) => ((item as { str?: string }).str ?? ''))
+          .join(' ');
+        pages.push(pageText);
+      }
+      const extracted = pages.join('\n').replace(/ {2,}/g, ' ').trim();
+      if (!extracted) { toast.error('Could not extract text — try pasting manually'); return; }
+      setResumeText(extracted);
+      setPdfFileName(file.name);
+      toast.success(`PDF loaded: ${file.name}`);
+    } catch {
+      toast.error('Failed to read PDF. Try another file.');
+    } finally {
+      setPdfParsing(false);
+    }
+  };
 
   const handleAnalyze = async () => {
-    if (!resumeText.trim()) { toast.error('Please paste your resume text'); return; }
+    if (!resumeText.trim()) { toast.error('Please paste your resume text or upload a PDF'); return; }
     setLoading(true);
     setReview(null);
     try {
@@ -170,10 +203,55 @@ const ResumeAnalyzer: React.FC = () => {
                   </div>
                   <h2 className="font-bold text-gray-900">Your Resume</h2>
                 </div>
-                <p className="text-xs text-gray-400 ml-10">Paste your complete resume text below</p>
+                <p className="text-xs text-gray-400 ml-10">Upload a PDF or paste resume text below</p>
               </div>
 
               <div className="p-6 space-y-4">
+                {/* PDF Upload */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Upload PDF <span className="text-gray-400 font-normal">(auto-extracts text)</span>
+                  </label>
+                  <div
+                    onClick={() => !pdfParsing && fileInputRef.current?.click()}
+                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) handlePdfUpload(f); }}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="flex flex-col items-center justify-center gap-1.5 py-5 px-4 rounded-2xl border-2 border-dashed cursor-pointer transition-all select-none"
+                    style={{ borderColor: pdfFileName ? '#10b981' : '#c7d2fe', background: pdfFileName ? 'rgba(16,185,129,0.05)' : 'rgba(238,242,255,0.5)' }}
+                  >
+                    {pdfParsing ? (
+                      <>
+                        <span className="w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+                        <span className="text-sm text-indigo-600 font-semibold">Extracting text…</span>
+                      </>
+                    ) : pdfFileName ? (
+                      <>
+                        <FiCheckCircle className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm text-emerald-700 font-semibold truncate max-w-[220px]">{pdfFileName}</span>
+                        <span className="text-xs text-gray-400">Click to replace</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiUpload className="w-6 h-6 text-indigo-400" />
+                        <span className="text-sm text-indigo-600 font-semibold">Click or drag &amp; drop PDF</span>
+                        <span className="text-xs text-gray-400">Max 5 MB · PDF only</span>
+                      </>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); e.target.value = ''; }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-xs text-gray-400 font-medium">or paste / type below</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+                </div>
+
                 {/* Target role */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Target Role <span className="text-gray-400 font-normal">(optional)</span></label>
@@ -223,7 +301,7 @@ const ResumeAnalyzer: React.FC = () => {
                 </button>
 
                 {review && (
-                  <button onClick={() => { setReview(null); setResumeText(''); setTargetRole(''); }}
+                  <button onClick={() => { setReview(null); setResumeText(''); setTargetRole(''); setPdfFileName(''); }}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                     <FiRefreshCw className="w-4 h-4" /> Analyze another resume
                   </button>
