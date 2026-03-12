@@ -7,7 +7,7 @@ import {
   FiHome, FiUsers, FiMessageSquare, FiBriefcase, FiCpu,
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
   FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
-  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget, FiStar
+  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget, FiStar, FiChevronDown
 } from 'react-icons/fi';
 
 /* ── Notification type config ── */
@@ -38,9 +38,11 @@ const Navbar: React.FC = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
+  const toolsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -71,6 +73,9 @@ const Navbar: React.FC = () => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
+      }
+      if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) {
+        setToolsOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -119,15 +124,18 @@ const Navbar: React.FC = () => {
         { to: '/mentors', label: 'Mentors', icon: FiUsers },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Jobs', icon: FiBriefcase },
-        { to: '/roadmap', label: 'Roadmap', icon: FiMap },
-        { to: '/interview', label: 'Interview', icon: FiCpu },
-        { to: '/chatbot', label: 'AI Chat', icon: FiMessageCircle },
-        { to: '/resume', label: 'Resume AI', icon: FiFileText },
-        { to: '/cover-letter', label: 'Cover Letter', icon: FiEdit2 },
-        { to: '/weekly-report', label: 'Weekly AI', icon: FiBarChart2 },
-        { to: '/skill-gap', label: 'Skill Gap', icon: FiTarget },
-        { to: '/chat', label: 'Messages', icon: FiMessageSquare },
+        { to: '/chat', label: 'Messages', icon: FiMessageCircle },
       ];
+
+  const aiToolLinks = [
+    { to: '/roadmap', label: 'Roadmap', icon: FiMap },
+    { to: '/interview', label: 'Interview', icon: FiCpu },
+    { to: '/chatbot', label: 'AI Chat', icon: FiMessageCircle },
+    { to: '/resume', label: 'Resume AI', icon: FiFileText },
+    { to: '/cover-letter', label: 'Cover Letter', icon: FiEdit2 },
+    { to: '/weekly-report', label: 'Weekly AI', icon: FiBarChart2 },
+    { to: '/skill-gap', label: 'Skill Gap', icon: FiTarget },
+  ];
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -170,6 +178,49 @@ const Navbar: React.FC = () => {
                     )}
                   </Link>
                 ))}
+
+                {/* AI Tools dropdown — students only */}
+                {userProfile?.role === 'student' && (
+                  <div className="relative" ref={toolsRef}>
+                    <button
+                      onClick={() => setToolsOpen(!toolsOpen)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap relative ${
+                        aiToolLinks.some(l => isActive(l.to))
+                          ? 'bg-white/15 text-white shadow-sm'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <FiZap className="w-4 h-4" />
+                      <span className="hidden lg:block">AI Tools</span>
+                      <FiChevronDown className={`w-3 h-3 transition-transform duration-200 ${toolsOpen ? 'rotate-180' : ''}`} />
+                      {aiToolLinks.some(l => isActive(l.to)) && (
+                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#4f46e5,#7c3aed)' }} />
+                      )}
+                    </button>
+
+                    {toolsOpen && (
+                      <div
+                        className="absolute left-0 top-full mt-2 w-52 rounded-2xl shadow-2xl border border-white/20 py-2 z-50 overflow-hidden"
+                        style={{ background: 'rgba(30,27,75,0.97)', backdropFilter: 'blur(20px)', animation: 'fadeInUp 0.18s ease-out both' }}
+                      >
+                        {aiToolLinks.map(({ to, label, icon: Icon }) => (
+                          <Link
+                            key={to}
+                            to={to}
+                            onClick={() => setToolsOpen(false)}
+                            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
+                              isActive(to) ? 'text-white bg-white/15' : 'text-white/70 hover:text-white hover:bg-white/10'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4 flex-shrink-0" />
+                            {label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {userProfile?.role === 'admin' && (
                   <Link
                     to="/admin"
@@ -431,6 +482,25 @@ const Navbar: React.FC = () => {
                 <Icon className="w-4 h-4" />{label}
               </Link>
             ))}
+            {userProfile?.role === 'student' && (
+              <>
+                <div className="px-4 pt-2 pb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">AI Tools</span>
+                </div>
+                {aiToolLinks.map(({ to, label, icon: Icon }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all ${
+                      isActive(to) ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />{label}
+                  </Link>
+                ))}
+              </>
+            )}
             {userProfile?.role === 'admin' && (
               <Link to="/admin" onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-rose-400 hover:bg-rose-500/20 transition-all">
