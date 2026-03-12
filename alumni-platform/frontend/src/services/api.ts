@@ -193,6 +193,12 @@ export const notificationsAPI = {
   getAll: () => apiService.get('/notifications'),
   markRead: (id: string) => apiService.put(`/notifications/${id}/read`),
   markAllRead: () => apiService.put('/notifications/read-all'),
+  sendVideoCallNotification: (
+    recipientId: string,
+    callerName: string,
+    roomName: string,
+    callLink: string,
+  ) => apiService.post('/notifications/video-call', { recipientId, callerName, roomName, callLink }),
 };
 
 export const paymentsAPI = {

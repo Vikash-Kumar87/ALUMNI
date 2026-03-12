@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { db } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { sendVideoCallEmail } from '../services/email';
 
 const router = Router();
 
@@ -11,7 +12,8 @@ export type NotificationType =
   | 'mentorship_rejected'
   | 'new_job'
   | 'discussion_answer'
-  | 'message';
+  | 'message'
+  | 'video_call';
 
 export interface Notification {
   id: string;
@@ -115,6 +117,51 @@ router.put('/read-all', verifyToken, async (req: AuthRequest, res: Response): Pr
     res.status(200).json({ message: 'All notifications marked as read' });
   } catch (error) {
     console.error('Mark all read error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /notifications/video-call — notify a user someone is calling them
+router.post('/video-call', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const callerUid = req.user?.uid;
+    const { recipientId, callerName, roomName, callLink } = req.body;
+
+    if (!recipientId || !callerName || !callLink) {
+      res.status(400).json({ error: 'recipientId, callerName and callLink are required' });
+      return;
+    }
+
+    // Prevent self-notification
+    if (recipientId === callerUid) {
+      res.status(200).json({ message: 'self-call ignored' });
+      return;
+    }
+
+    // In-app notification
+    await createNotification(
+      recipientId,
+      'video_call',
+      `📹 Incoming Video Call`,
+      `${callerName} is calling you — join now!`,
+      callLink,
+    );
+
+    // Email notification
+    const recipientDoc = await db.collection('users').doc(recipientId).get();
+    const recipient = recipientDoc.data();
+    if (recipient?.email && recipient?.emailNotifications?.messages !== false) {
+      await sendVideoCallEmail(
+        recipient.email,
+        recipient.name || 'there',
+        callerName,
+        callLink,
+      );
+    }
+
+    res.status(200).json({ message: 'Video call notification sent' });
+  } catch (error) {
+    console.error('Video call notification error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

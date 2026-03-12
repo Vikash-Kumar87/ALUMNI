@@ -175,3 +175,55 @@ export async function sendMentorshipAcceptedEmail(
     html,
   });
 }
+
+// ── sendVideoCallEmail ──────────────────────────────────────────────────────
+export async function sendVideoCallEmail(
+  recipientEmail: string,
+  recipientName: string,
+  callerName: string,
+  callLink: string,
+): Promise<void> {
+  const transporter = createTransporter();
+
+  const body = `
+    <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 20px;">
+      Hi <strong>${recipientName}</strong>,
+    </p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 24px;">
+      <strong>${callerName}</strong> is calling you on AlumniConnect. Click the button below to join the video call now.
+    </p>
+
+    <!-- Call card -->
+    <div style="background:linear-gradient(135deg,rgba(236,253,245,0.9),rgba(209,250,229,0.5));border:1.5px solid #6ee7b7;border-radius:16px;padding:20px 24px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:52px;height:52px;background:linear-gradient(135deg,#10b981,#059669);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">
+          📹
+        </div>
+        <div>
+          <p style="margin:0;font-size:17px;font-weight:800;color:#065f46;">${callerName}</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#059669;">is waiting for you in a video call</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#f0fdf4;border-radius:12px;padding:16px 20px;margin-top:20px;border-left:4px solid #10b981;">
+      <p style="margin:0;font-size:14px;color:#166534;font-weight:600;">⚡ Join quickly</p>
+      <p style="margin:6px 0 0;font-size:14px;color:#15803d;line-height:1.6;">No download needed — the call opens directly in your browser using Jitsi Meet.</p>
+    </div>
+  `;
+
+  const html = wrapTemplate('#10b981', '📹', `${callerName} is calling you!`, body, 'Join Video Call →', callLink);
+
+  if (!transporter) {
+    console.log(`[Email Dev] To: ${recipientEmail} | Subject: Video call from ${callerName} | Link: ${callLink}`);
+    return;
+  }
+
+  await transporter.sendMail({
+    from: FROM,
+    to: recipientEmail,
+    subject: `📹 ${callerName} is calling you on AlumniConnect`,
+    html,
+  });
+}
+

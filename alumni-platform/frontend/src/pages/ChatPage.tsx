@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { usersAPI, chatAPI, paymentsAPI, aiAPI } from '../services/api';
+import { usersAPI, chatAPI, paymentsAPI, aiAPI, notificationsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import toast from 'react-hot-toast';
@@ -521,8 +521,21 @@ const ChatPage: React.FC = () => {
                   {/* Video call button */}
                   {selectedUser && (
                     <motion.button
-                      onClick={() => {
-                        const room = [userProfile!.uid, selectedUser.userId].sort().join('');
+                      onClick={async () => {
+                        // Alumni gets a stable room based on their own UID
+                        // so multiple students can join the same call
+                        const isAlumni = userProfile!.role === 'alumni';
+                        const room = isAlumni
+                          ? userProfile!.uid
+                          : [userProfile!.uid, selectedUser.userId].sort().join('');
+                        const callLink = `${window.location.origin}/video-call?room=${room}&peer=${encodeURIComponent(userProfile!.name || '')}`;
+                        // Notify the other person (fire-and-forget, don't block navigation)
+                        notificationsAPI.sendVideoCallNotification(
+                          selectedUser.userId,
+                          userProfile!.name || 'Someone',
+                          room,
+                          callLink,
+                        ).catch(() => {/* silent */});
                         navigate(`/video-call?room=${room}&peer=${encodeURIComponent(selectedUser.displayName)}`);
                       }}
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
