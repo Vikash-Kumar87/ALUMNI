@@ -734,4 +734,62 @@ Rules:
   }
 });
 
+// POST /ai/icebreaker - Generate personalized opening message for mentorship request
+router.post('/icebreaker', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const {
+      studentName, studentSkills, studentGoals, studentBranch, studentBio,
+      mentorName, mentorSkills, mentorCompany, mentorRole, mentorBio,
+    } = req.body;
+
+    const prompt = `You are an expert networking coach. Generate 3 distinct, personalized opening messages for a student reaching out to an alumni mentor on a platform called AlumniConnect.
+
+Student Profile:
+- Name: ${studentName || 'Student'}
+- Branch/Major: ${studentBranch || 'Engineering'}
+- Skills: ${(studentSkills || []).join(', ') || 'Not specified'}
+- Goals: ${studentGoals || 'Not specified'}
+- Bio: ${studentBio || 'Not provided'}
+
+Mentor Profile:
+- Name: ${mentorName || 'Mentor'}
+- Role: ${mentorRole || 'Software Engineer'}
+- Company: ${mentorCompany || 'Tech Company'}
+- Expertise: ${(mentorSkills || []).join(', ') || 'Not specified'}
+- Bio: ${mentorBio || 'Not provided'}
+
+Generate exactly 3 opening messages, each with a different tone:
+1. Professional & formal
+2. Enthusiastic & direct
+3. Story-driven & personal
+
+Each message:
+- Is 2-3 sentences max (under 60 words)
+- References specific details from BOTH profiles to show genuine interest
+- Has a clear ask or intent
+- Sounds natural and human
+
+Respond with ONLY valid JSON (no markdown, no code block):
+{
+  "messages": [
+    { "tone": "Professional", "emoji": "💼", "text": "...", "highlight": "one word reason why this works" },
+    { "tone": "Enthusiastic", "emoji": "🚀", "text": "...", "highlight": "one word reason" },
+    { "tone": "Personal",      "emoji": "✨", "text": "...", "highlight": "one word reason" }
+  ]
+}`;
+
+    const responseText = (await generateText(prompt, 1000)).trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { messages: [] };
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Icebreaker error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable.' });
+  }
+});
+
 export default router;

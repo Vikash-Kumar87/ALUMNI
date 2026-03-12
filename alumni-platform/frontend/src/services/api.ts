@@ -172,6 +172,13 @@ export const aiAPI = {
     branch: string,
     targetRole: string,
   ) => apiService.post('/ai/weekly-report', { name, skills, goals, interests, branch, targetRole }),
+  generateIcebreaker: (
+    studentName: string, studentSkills: string[], studentGoals: string, studentBranch: string, studentBio: string,
+    mentorName: string, mentorSkills: string[], mentorCompany: string, mentorRole: string, mentorBio: string,
+  ) => apiService.post('/ai/icebreaker', {
+    studentName, studentSkills, studentGoals, studentBranch, studentBio,
+    mentorName, mentorSkills, mentorCompany, mentorRole, mentorBio,
+  }),
 };
 
 export const notificationsAPI = {

@@ -4,10 +4,26 @@ import { User, MentorRecommendation } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import {
   FiSearch, FiStar, FiSend, FiBriefcase, FiLinkedin,
   FiCpu, FiCalendar, FiClock, FiCheckCircle, FiX, FiAward,
+  FiZap, FiRefreshCw, FiCopy, FiCheck,
 } from 'react-icons/fi';
+
+// ─── Icebreaker types ────────────────────────────────────────────────────────
+interface IcebreakerMsg { tone: string; emoji: string; text: string; highlight: string; }
+
+// ─── framer-motion variants ───────────────────────────────────────────────────
+const popIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92, y: 12 },
+  show: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring' as const, stiffness: 340, damping: 26 } },
+  exit:  { opacity: 0, scale: 0.94, y: -8, transition: { duration: 0.18 } },
+};
+const slideRow: Variants = {
+  hidden: { opacity: 0, x: -14 },
+  show: (i: number) => ({ opacity: 1, x: 0, transition: { delay: i * 0.07, type: 'spring' as const, stiffness: 300, damping: 26 } }),
+};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface BookingModal { mentor: User; }
@@ -58,8 +74,12 @@ const MentorPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [requestingId, setRequestingId] = useState<string | null>(null);
-  const [messageModal, setMessageModal] = useState<{ uid: string; name: string } | null>(null);
+  const [messageModal, setMessageModal] = useState<{ uid: string; name: string; mentor?: User } | null>(null);
   const [message, setMessage] = useState('');
+  const [icebreakers, setIcebreakers] = useState<IcebreakerMsg[]>([]);
+  const [icebreakerLoading, setIcebreakerLoading] = useState(false);
+  const [selectedIcebreaker, setSelectedIcebreaker] = useState<number | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [bookingModal, setBookingModal] = useState<BookingModal | null>(null);
   const [payStep, setPayStep] = useState<PayStep>('confirm');
   const [bookedMentorId, setBookedMentorId] = useState<string | null>(null);
@@ -93,9 +113,47 @@ const MentorPage: React.FC = () => {
       toast.success('Mentorship request sent! 🎉');
       setMessageModal(null);
       setMessage('');
+      setIcebreakers([]);
+      setSelectedIcebreaker(null);
     } catch (err) {
       toast.error((err as Error).message || 'Failed to send request');
     } finally { setRequestingId(null); }
+  };
+
+  const fetchIcebreakers = async (mentor: User) => {
+    setIcebreakerLoading(true);
+    setIcebreakers([]);
+    setSelectedIcebreaker(null);
+    try {
+      const res = await aiAPI.generateIcebreaker(
+        userProfile?.name || '', userProfile?.skills || [], userProfile?.goals || '',
+        userProfile?.branch || '', userProfile?.bio || '',
+        mentor.name || '', mentor.skills || [], mentor.company || '',
+        mentor.jobRole || '', mentor.bio || '',
+      );
+      setIcebreakers(res.data.messages || []);
+    } catch {
+      toast.error('Could not generate suggestions');
+    } finally { setIcebreakerLoading(false); }
+  };
+
+  const applyIcebreaker = (idx: number) => {
+    setMessage(icebreakers[idx].text);
+    setSelectedIcebreaker(idx);
+  };
+
+  const copyIcebreaker = (idx: number) => {
+    navigator.clipboard.writeText(icebreakers[idx].text).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1800);
+    });
+  };
+
+  const closeMessageModal = () => {
+    setMessageModal(null);
+    setMessage('');
+    setIcebreakers([]);
+    setSelectedIcebreaker(null);
   };
 
   const openBookingModal = (mentor: User) => { setPayStep('confirm'); setBookingModal({ mentor }); };
@@ -204,7 +262,7 @@ const MentorPage: React.FC = () => {
               </button>
             ) : userProfile?.role === 'student' ? (
               <button
-                onClick={() => setMessageModal({ uid: mentor.uid, name: mentor.name })}
+                onClick={() => setMessageModal({ uid: mentor.uid, name: mentor.name, mentor })}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white transition-all duration-200"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 2px 10px rgba(124,58,237,0.3)' }}
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 18px rgba(124,58,237,0.5)'; e.currentTarget.style.transform = 'scale(1.02)'; }}
@@ -367,48 +425,173 @@ const MentorPage: React.FC = () => {
           )}
         </div>
 
-        {/* Free Mentorship Request Modal */}
-        {messageModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ animation: 'fadeInUp 0.25s ease-out both' }}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-                  <FiSend className="w-4 h-4 text-white" />
+        {/* ─── AI Icebreaker + Mentorship Request Modal ─────────────────── */}
+        <AnimatePresence>
+          {messageModal && (
+            <motion.div
+              key="icebreaker-backdrop"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/55 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+              onClick={e => { if (e.target === e.currentTarget) closeMessageModal(); }}
+            >
+              <motion.div
+                key="icebreaker-modal"
+                variants={popIn} initial="hidden" animate="show" exit="exit"
+                className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
+                style={{ maxHeight: '90vh', overflowY: 'auto' }}
+              >
+                {/* Header */}
+                <div className="relative px-5 pt-5 pb-4" style={{ background: 'linear-gradient(135deg,#6d28d9,#7c3aed,#4f46e5)' }}>
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5" />
+                    <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
+                  </div>
+                  <div className="relative flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <FiSend className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-white text-base">Request Mentorship</h3>
+                        <p className="text-violet-200 text-xs">To <strong className="text-white">{messageModal.name}</strong></p>
+                      </div>
+                    </div>
+                    <button onClick={closeMessageModal}
+                      className="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors">
+                      <FiX className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Request Mentorship</h3>
-                  <p className="text-xs text-gray-500">Send a message to <strong>{messageModal.name}</strong></p>
+
+                <div className="px-5 pt-4 pb-5 space-y-4">
+
+                  {/* AI Icebreaker panel */}
+                  <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'rgba(109,40,217,0.15)', background: 'linear-gradient(135deg,rgba(109,40,217,0.04),rgba(79,70,229,0.03))' }}>
+                    <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: icebreakerLoading || icebreakers.length > 0 ? '1px solid rgba(109,40,217,0.1)' : 'none' }}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)' }}>
+                          <FiZap className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-gray-800">AI Icebreaker</p>
+                          <p className="text-[10px] text-gray-400">Auto-crafted from both profiles</p>
+                        </div>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.93 }}
+                        onClick={() => messageModal.mentor && fetchIcebreakers(messageModal.mentor)}
+                        disabled={icebreakerLoading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', boxShadow: '0 2px 10px rgba(124,58,237,0.3)' }}
+                      >
+                        {icebreakerLoading
+                          ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating…</>
+                          : icebreakers.length > 0
+                            ? <><FiRefreshCw className="w-3 h-3" /> Regenerate</>
+                            : <><FiZap className="w-3 h-3" /> Suggest Message</>}
+                      </motion.button>
+                    </div>
+
+                    {/* Loading shimmer */}
+                    {icebreakerLoading && (
+                      <div className="px-4 py-3 space-y-2">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <div className="w-7 h-7 rounded-xl skeleton flex-shrink-0" />
+                            <div className="flex-1 space-y-1.5 pt-1">
+                              <div className="h-2.5 rounded skeleton" style={{ width: `${75 + i * 8}%` }} />
+                              <div className="h-2.5 rounded skeleton w-3/5" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Suggestion cards */}
+                    {!icebreakerLoading && icebreakers.length > 0 && (
+                      <motion.div
+                        initial="hidden" animate="show"
+                        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
+                        className="px-4 py-3 space-y-2"
+                      >
+                        {icebreakers.map((msg, i) => (
+                          <motion.div
+                            key={i} custom={i} variants={slideRow}
+                            onClick={() => applyIcebreaker(i)}
+                            className={`relative group rounded-xl p-3 cursor-pointer transition-all border ${
+                              selectedIcebreaker === i
+                                ? 'border-violet-300 bg-violet-50'
+                                : 'border-gray-100 bg-white hover:border-violet-200 hover:bg-violet-50/40'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span className="text-base flex-shrink-0 mt-0.5">{msg.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                  <span className="text-[10px] font-black text-violet-600 uppercase tracking-wide">{msg.tone}</span>
+                                  {msg.highlight && (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-500 font-semibold">{msg.highlight}</span>
+                                  )}
+                                  {selectedIcebreaker === i && (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-600 font-bold ml-auto">✓ Applied</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-700 leading-relaxed">{msg.text}</p>
+                              </div>
+                              <button
+                                onClick={e => { e.stopPropagation(); copyIcebreaker(i); }}
+                                className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-violet-500 hover:bg-violet-50 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                {copiedIdx === i ? <FiCheck className="w-3.5 h-3.5 text-emerald-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </motion.div>
+                        ))}
+                        <p className="text-[10px] text-gray-400 text-center pt-1">Click a suggestion to use it · Edit freely below</p>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Message textarea */}
+                  <div className="relative">
+                    <textarea
+                      value={message}
+                      onChange={e => setMessage(e.target.value)}
+                      placeholder="Introduce yourself and explain what you'd like to learn..."
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-transparent transition-all resize-none"
+                      rows={4}
+                    />
+                    {message && (
+                      <div className="absolute bottom-2.5 right-3 text-[10px] text-gray-300 font-medium">{message.length} chars</div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={closeMessageModal}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleRequest(messageModal.uid)}
+                      disabled={requestingId === messageModal.uid || !message.trim()}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-black text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', boxShadow: '0 4px 14px rgba(124,58,237,0.4)' }}
+                    >
+                      {requestingId === messageModal.uid
+                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending…</>
+                        : <><FiSend className="w-4 h-4" /> Send Request</>}
+                    </motion.button>
+                  </div>
+
                 </div>
-              </div>
-              <textarea
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                placeholder="Introduce yourself and explain what you'd like to learn..."
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-transparent transition-all resize-none mb-4"
-                rows={4}
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setMessageModal(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleRequest(messageModal.uid)}
-                  disabled={requestingId === messageModal.uid}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 4px 14px rgba(124,58,237,0.4)' }}
-                >
-                  {requestingId === messageModal.uid
-                    ? <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"/><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/></svg> Sending...</>
-                    : <><FiSend className="w-4 h-4" /> Send Request</>
-                  }
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Payment Modal ─────────────────────────────────────────────────── */}
         {bookingModal && (
