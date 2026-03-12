@@ -27,6 +27,7 @@ import ResumeAnalyzer from './pages/ResumeAnalyzer';
 import CoverLetterGenerator from './pages/CoverLetterGenerator';
 import WeeklyCareerReport from './pages/WeeklyCareerReport';
 import SkillGapAnalyzer from './pages/SkillGapAnalyzer';
+import SuccessStoryGenerator from './pages/SuccessStoryGenerator';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -104,6 +105,15 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute requiredRole="alumni">
                 <MentorshipRequests />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+
+          {/* Success Story Generator — alumni only */}
+          <Route path="/success-story" element={
+            <AppLayout>
+              <ProtectedRoute requiredRole="alumni">
+                <SuccessStoryGenerator />
               </ProtectedRoute>
             </AppLayout>
           } />

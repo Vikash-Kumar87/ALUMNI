@@ -7,7 +7,7 @@ import {
   FiHome, FiUsers, FiMessageSquare, FiBriefcase, FiCpu,
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
   FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
-  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget
+  FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget, FiStar
 } from 'react-icons/fi';
 
 /* ── Notification type config ── */
@@ -111,6 +111,7 @@ const Navbar: React.FC = () => {
         { to: '/mentorship-requests', label: 'Students', icon: FiUserCheck },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Post Jobs', icon: FiBriefcase },
+        { to: '/success-story', label: 'My Story', icon: FiStar },
         { to: '/chat', label: 'Messages', icon: FiMessageCircle },
       ]
     : [

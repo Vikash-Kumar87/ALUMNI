@@ -792,4 +792,57 @@ Respond with ONLY valid JSON (no markdown, no code block):
   }
 });
 
+// POST /ai/success-story - Generate formatted success story / bio for alumni
+router.post('/success-story', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, currentRole, company, journey, biggestWin, challengesFaced, adviceForJuniors, funFact, tone, skills } = req.body;
+
+    const toneGuide: Record<string, string> = {
+      inspiring:    'uplifting, motivational, and empowering — meant to inspire students',
+      professional: 'polished, concise, LinkedIn-style — third-person professional bio',
+      storytelling: 'first-person narrative arc with emotional depth — like a personal essay',
+    };
+
+    const prompt = `You are an expert biography writer. Write a compelling success story / profile bio for a mentor on an alumni platform called AlumniConnect.
+
+Alumni Details:
+- Name: ${name || 'Alumni'}
+- Current Role: ${currentRole || 'Professional'}
+- Company: ${company || 'Not specified'}
+- Skills: ${(skills || []).join(', ') || 'Not specified'}
+- Journey: ${journey}
+- Biggest Win / Achievement: ${biggestWin || 'Not provided'}
+- Challenges Overcome: ${challengesFaced || 'Not provided'}
+- Advice for Students: ${adviceForJuniors || 'Not provided'}
+- Fun Fact: ${funFact || 'Not provided'}
+
+Tone: ${tone || 'inspiring'} — ${toneGuide[tone] || toneGuide['inspiring']}
+
+Write a 250-350 word success story that:
+1. Opens with a powerful hook sentence about who they are today
+2. Describes their journey from student to professional with specific details
+3. Highlights their biggest achievement(s) with context
+4. Briefly mentions challenges they overcame (makes them relatable)
+5. Closes with their advice or vision for the next generation
+6. If a fun fact was provided, weave it in naturally
+
+Rules:
+- Use natural paragraphs (3-4 paragraphs total)
+- Avoid buzzwords like 'passionate', 'guru', 'ninja'
+- Make it feel authentic and human, not like a press release
+- Do NOT include a title or heading, just the story text
+- Output only the story text, nothing else`;
+
+    const story = (await generateText(prompt, 1200)).trim();
+    res.status(200).json({ story });
+  } catch (error) {
+    console.error('Success story error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable.' });
+  }
+});
+
 export default router;

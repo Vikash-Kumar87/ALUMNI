@@ -179,6 +179,14 @@ export const aiAPI = {
     studentName, studentSkills, studentGoals, studentBranch, studentBio,
     mentorName, mentorSkills, mentorCompany, mentorRole, mentorBio,
   }),
+  generateSuccessStory: (
+    name: string, currentRole: string, company: string, journey: string,
+    biggestWin: string, challengesFaced: string, adviceForJuniors: string,
+    funFact: string, tone: string, skills: string[],
+  ) => apiService.post('/ai/success-story', {
+    name, currentRole, company, journey,
+    biggestWin, challengesFaced, adviceForJuniors, funFact, tone, skills,
+  }),
 };
 
 export const notificationsAPI = {
