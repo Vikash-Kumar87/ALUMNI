@@ -28,6 +28,7 @@ import CoverLetterGenerator from './pages/CoverLetterGenerator';
 import WeeklyCareerReport from './pages/WeeklyCareerReport';
 import SkillGapAnalyzer from './pages/SkillGapAnalyzer';
 import SuccessStoryGenerator from './pages/SuccessStoryGenerator';
+import VideoCallPage from './pages/VideoCallPage';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -114,6 +115,14 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute requiredRole="alumni">
                 <SuccessStoryGenerator />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+          {/* Video Call */}
+          <Route path="/video-call" element={
+            <AppLayout showNav={false}>
+              <ProtectedRoute>
+                <VideoCallPage />
               </ProtectedRoute>
             </AppLayout>
           } />

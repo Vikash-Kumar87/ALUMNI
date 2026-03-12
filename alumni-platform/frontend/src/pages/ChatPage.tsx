@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usersAPI, chatAPI, paymentsAPI, aiAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
   FiSend, FiSearch, FiUser, FiArrowLeft, FiLock, FiCalendar, FiMessageCircle,
-  FiZap, FiX, FiCheckCircle, FiBookOpen, FiExternalLink, FiClipboard, FiCheck,
+  FiZap, FiX, FiCheckCircle, FiBookOpen, FiExternalLink, FiClipboard, FiCheck, FiVideo,
 } from 'react-icons/fi';
 
 interface SessionSummary {
@@ -54,6 +54,7 @@ interface Conversation {
 const ChatPage: React.FC = () => {
   const { userProfile } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<Conversation | null>(null);
@@ -517,6 +518,22 @@ const ChatPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Video call button */}
+                  {selectedUser && (
+                    <motion.button
+                      onClick={() => {
+                        const room = [userProfile!.uid, selectedUser.userId].sort().join('');
+                        navigate(`/video-call?room=${room}&peer=${encodeURIComponent(selectedUser.displayName)}`);
+                      }}
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all"
+                      style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 2px 10px rgba(16,185,129,0.4)' }}
+                      title="Start video call"
+                    >
+                      <FiVideo className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Video Call</span>
+                    </motion.button>
+                  )}
                   {messages.length >= 2 && (
                     <motion.button
                       onClick={handleSummarize}
