@@ -264,36 +264,114 @@ const ChatPage: React.FC = () => {
 
     const path = `chat-files/${[userProfile.uid, selectedUser.userId].sort().join('_')}/${Date.now()}_${file.name}`;
     const sRef = storageRef(storage, path);
-    const uploadTask = uploadBytesResumable(sRef, file);
-
-    setUploadProgress(0);
-    uploadTask.on(
-      'state_changed',
-      snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
-      () => { toast.error('Upload failed'); setUploadProgress(null); },
-      async () => {
-        try {
-          const url = await getDownloadURL(uploadTask.snapshot.ref);
-          const msgType = isImage ? 'image' : 'file';
-          const text = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
-          await chatAPI.sendMessage(selectedUser.userId, text, {
-            messageType: msgType,
-            fileUrl: url,
-            fileName: file.name,
-            fileSize: file.size,
-          });
-          const chatRoomId = [userProfile.uid, selectedUser.userId].sort().join('_');
-          await fetchMessages(chatRoomId);
-          toast.success(isImage ? 'Image sent!' : 'File sent!');
-        } catch {
-          toast.error('Failed to send file');
-        } finally {
+    
+    try {
+      const uploadTask = uploadBytesResumable(sRef, file);
+      setUploadProgress(0);
+      
+      uploadTask.on(
+        'state_changed',
+        snap => {
+          const progress = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+          setUploadProgress(progress);
+          console.log(`Upload progress: ${progress}%`);
+        },
+        error => {
+          console.error('Upload error:', error);
+          toast.error(`Upload failed: ${error.message}`);
           setUploadProgress(null);
+        },
+        async () => {
+          try {
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            const msgType = isImage ? 'image' : 'file';
+            const text = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
+            await chatAPI.sendMessage(selectedUser.userId, text, {
+              messageType: msgType,
+              fileUrl: url,
+              fileName: file.name,
+              fileSize: file.size,
+            });
+            const chatRoomId = [userProfile.uid, selectedUser.userId].sort().join('_');
+            await fetchMessages(chatRoomId);
+            toast.success(isImage ? 'Image sent!' : 'File sent!');
+          } catch (err) {
+            console.error('Message send error:', err);
+            toast.error('Failed to send file');
+          } finally {
+            setUploadProgress(null);
+          }
         }
-      }
-    );
+      );
+    } catch (err) {
+      console.error('Storage upload error:', err);
+      toast.error(`Storage error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setUploadProgress(null);
+    }
+    
     // reset input so same file can be re-selected
     e.target.value = '';
+  };
+
+  // Handle paste for screenshots
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    if (!selectedUser || !userProfile) return;
+    
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        const path = `chat-files/${[userProfile.uid, selectedUser.userId].sort().join('_')}/${Date.now()}_pasted-image.png`;
+        const sRef = storageRef(storage, path);
+
+        try {
+          const uploadTask = uploadBytesResumable(sRef, file);
+          setUploadProgress(0);
+
+          uploadTask.on(
+            'state_changed',
+            snap => {
+              const progress = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+              setUploadProgress(progress);
+            },
+            error => {
+              console.error('Paste upload error:', error);
+              toast.error(`Upload failed: ${error.message}`);
+              setUploadProgress(null);
+            },
+            async () => {
+              try {
+                const url = await getDownloadURL(uploadTask.snapshot.ref);
+                await chatAPI.sendMessage(selectedUser.userId, `📷 Screenshot`, {
+                  messageType: 'image',
+                  fileUrl: url,
+                  fileName: 'pasted-image.png',
+                  fileSize: file.size,
+                });
+                const chatRoomId = [userProfile.uid, selectedUser.userId].sort().join('_');
+                await fetchMessages(chatRoomId);
+                toast.success('Screenshot sent!');
+              } catch (err) {
+                console.error('Message send error:', err);
+                toast.error('Failed to send screenshot');
+              } finally {
+                setUploadProgress(null);
+              }
+            }
+          );
+        } catch (err) {
+          console.error('Storage error:', err);
+          toast.error(`Storage error: ${err instanceof Error ? err.message : 'Unknown'}`);
+          setUploadProgress(null);
+        }
+        break;
+      }
+    }
   };
 
   // Separate by tab
@@ -757,6 +835,7 @@ const ChatPage: React.FC = () => {
                       type="text"
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
+                      onPaste={handlePaste}
                       placeholder={`Message ${selectedUser!.displayName}...`}
                       disabled={sendingMessage || uploadProgress !== null}
                       className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white transition-all placeholder-gray-400 pr-4"
