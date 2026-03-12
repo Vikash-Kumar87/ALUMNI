@@ -392,6 +392,52 @@ Evaluate both CONTENT quality and DELIVERY. Return ONLY valid JSON with NO other
   }
 });
 
+// POST /ai/discussion-answer - AI Smart Answer for Discussion Questions
+router.post('/discussion-answer', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { question, tags } = req.body;
+
+    if (!question) {
+      res.status(400).json({ error: 'Question is required' });
+      return;
+    }
+
+    const tagContext = tags?.length ? `Related topics: ${tags.join(', ')}.` : '';
+
+    const prompt = `You are an expert mentor and senior engineer answering a community discussion question.
+
+Question: ${question}
+${tagContext}
+
+Provide a clear, helpful, and beginner-friendly answer. Also suggest 3 specific, real learning resources with URLs.
+
+Return ONLY valid JSON with NO other text:
+{
+  "answer": "A detailed but concise answer (3-5 paragraphs max)",
+  "keyPoints": ["key takeaway 1", "key takeaway 2", "key takeaway 3"],
+  "resources": [
+    { "title": "Resource title", "url": "https://...", "type": "docs" | "article" | "video" | "course" },
+    { "title": "Resource title", "url": "https://...", "type": "docs" | "article" | "video" | "course" },
+    { "title": "Resource title", "url": "https://...", "type": "docs" | "article" | "video" | "course" }
+  ],
+  "confidence": "high" | "medium" | "low"
+}`;
+
+    const responseText = (await generateText(prompt)).trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+    res.status(200).json({ result });
+  } catch (error) {
+    console.error('Discussion answer error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait a moment and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable. Please try again.' });
+  }
+});
+
 // POST /ai/cover-letter - AI Cover Letter Generator
 router.post('/cover-letter', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

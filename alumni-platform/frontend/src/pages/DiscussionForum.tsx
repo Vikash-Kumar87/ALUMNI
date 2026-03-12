@@ -1,12 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { discussionAPI } from '../services/api';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { discussionAPI, aiAPI } from '../services/api';
 import { Discussion } from '../types';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
-  FiMessageSquare, FiThumbsUp, FiSend, FiPlus, FiX, FiChevronDown, FiChevronUp, FiTag, FiUser, FiClock
+  FiMessageSquare, FiThumbsUp, FiSend, FiPlus, FiX, FiChevronDown, FiChevronUp,
+  FiTag, FiUser, FiClock, FiZap, FiExternalLink, FiBookOpen, FiCheckCircle,
 } from 'react-icons/fi';
 import { formatDistanceToNow } from 'date-fns';
+
+interface AiDiscussionResult {
+  answer: string;
+  keyPoints: string[];
+  resources: { title: string; url: string; type: string }[];
+  confidence: 'high' | 'medium' | 'low';
+}
+
+const RESOURCE_ICONS: Record<string, string> = { docs: '📄', article: '📰', video: '🎬', course: '🎓' };
+
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+};
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+};
 
 const TAG_COLORS = [
   'bg-violet-100 text-violet-700 border border-violet-200',
@@ -50,6 +70,8 @@ const DiscussionForum: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [answerMap, setAnswerMap] = useState<Record<string, string>>({});
   const [answeringId, setAnsweringId] = useState<string | null>(null);
+  const [aiAnswerMap, setAiAnswerMap] = useState<Record<string, AiDiscussionResult | null>>({});
+  const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
 
   useEffect(() => { fetchDiscussions(); }, []);
 
@@ -122,6 +144,20 @@ const DiscussionForum: React.FC = () => {
         return { ...d, answers };
       }));
     } catch { }
+  };
+
+  const handleAskAI = async (d: Discussion) => {
+    if (aiAnswerMap[d.id]) { setAiAnswerMap(prev => ({ ...prev, [d.id]: null })); return; }
+    setAiLoadingId(d.id);
+    if (expandedId !== d.id) setExpandedId(d.id);
+    try {
+      const res = await aiAPI.discussionAnswer(d.question, d.tags || []);
+      setAiAnswerMap(prev => ({ ...prev, [d.id]: res.data.result }));
+    } catch (err) {
+      toast.error((err as Error).message || 'AI failed to answer. Try again.');
+    } finally {
+      setAiLoadingId(null);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -332,11 +368,145 @@ const DiscussionForum: React.FC = () => {
                               {d.answers?.length || 0} {d.answers?.length === 1 ? 'answer' : 'answers'}
                               {isExpanded ? <FiChevronUp className="w-3.5 h-3.5" /> : <FiChevronDown className="w-3.5 h-3.5" />}
                             </button>
+                            {/* Ask AI button */}
+                            <motion.button
+                              onClick={() => handleAskAI(d)}
+                              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                              disabled={aiLoadingId === d.id}
+                              className="flex items-center gap-1 font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-70"
+                              style={aiAnswerMap[d.id]
+                                ? { background: '#ede9fe', color: '#7c3aed' }
+                                : { background: 'linear-gradient(135deg,#f0abfc,#818cf8)', color: 'white', boxShadow: '0 2px 10px rgba(129,140,248,0.4)' }
+                              }
+                            >
+                              {aiLoadingId === d.id
+                                ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                                : <FiZap className="w-3 h-3" />
+                              }
+                              {aiAnswerMap[d.id] ? 'Hide AI' : 'Ask AI'}
+                            </motion.button>
                           </div>
 
                           {/* Answers Panel */}
                           {isExpanded && (
                             <div className="mt-4 border-t border-gray-100 pt-4 space-y-3" style={{ animation: 'fadeInUp 0.3s ease-out both' }}>
+
+                              {/* AI Loading shimmer */}
+                              <AnimatePresence>
+                                {aiLoadingId === d.id && (
+                                  <motion.div
+                                    key="ai-loading"
+                                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                                    className="rounded-2xl overflow-hidden border border-violet-200"
+                                    style={{ background: 'linear-gradient(135deg,#f5f3ff,#eef2ff)' }}
+                                  >
+                                    <div className="flex items-center gap-3 px-4 py-3 border-b border-violet-100">
+                                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#a78bfa,#818cf8)' }}>
+                                        <FiZap className="w-3.5 h-3.5 text-white" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="text-xs font-bold text-violet-700">AI is thinking…</p>
+                                        <p className="text-[10px] text-violet-400">Searching knowledge base &amp; resources</p>
+                                      </div>
+                                      <div className="flex items-end gap-0.5 h-5">
+                                        {[0.1,0.2,0.3,0.2,0.1].map((d, i) => (
+                                          <motion.div key={i} className="w-1 rounded-full bg-violet-400"
+                                            animate={{ height: ['4px','14px','4px'] }}
+                                            transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 }}
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div className="p-4 space-y-2">
+                                      {[1,0.7,0.5].map((w, i) => (
+                                        <div key={i} className="h-3 rounded-full skeleton" style={{ width: `${w*100}%`, opacity: 1-i*0.2 }} />
+                                      ))}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              {/* AI Answer Panel */}
+                              <AnimatePresence>
+                                {aiAnswerMap[d.id] && (
+                                  <motion.div
+                                    key="ai-answer"
+                                    initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                                    transition={{ duration: 0.4 }}
+                                    className="rounded-2xl overflow-hidden border border-violet-200"
+                                    style={{ background: 'linear-gradient(135deg,#faf5ff,#eef2ff)' }}
+                                  >
+                                    {/* Header */}
+                                    <div className="flex items-center gap-3 px-4 py-3 border-b border-violet-100" style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.1),rgba(99,102,241,0.08))' }}>
+                                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', boxShadow: '0 2px 10px rgba(139,92,246,0.4)' }}>
+                                        <FiZap className="w-3.5 h-3.5 text-white" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="text-xs font-bold text-violet-800">AI Answer</p>
+                                        <p className="text-[10px] text-violet-400">Instant response · Waiting for human experts too</p>
+                                      </div>
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                        aiAnswerMap[d.id]!.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' :
+                                        aiAnswerMap[d.id]!.confidence === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                        'bg-gray-100 text-gray-500'
+                                      }`}>
+                                        {aiAnswerMap[d.id]!.confidence} confidence
+                                      </span>
+                                    </div>
+
+                                    {/* Answer body */}
+                                    <div className="px-4 pt-3 pb-2">
+                                      <p className="text-sm text-gray-700 leading-relaxed">{aiAnswerMap[d.id]!.answer}</p>
+                                    </div>
+
+                                    {/* Key points */}
+                                    {aiAnswerMap[d.id]!.keyPoints?.length > 0 && (
+                                      <div className="px-4 pt-1 pb-3">
+                                        <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest mb-2">Key Takeaways</p>
+                                        <motion.ul variants={stagger} initial="hidden" animate="show" className="space-y-1.5">
+                                          {aiAnswerMap[d.id]!.keyPoints.map((kp, ki) => (
+                                            <motion.li key={ki} variants={fadeUp} className="flex items-start gap-2 text-xs text-gray-700">
+                                              <FiCheckCircle className="w-3.5 h-3.5 text-violet-500 flex-shrink-0 mt-0.5" />
+                                              {kp}
+                                            </motion.li>
+                                          ))}
+                                        </motion.ul>
+                                      </div>
+                                    )}
+
+                                    {/* Resources */}
+                                    {aiAnswerMap[d.id]!.resources?.length > 0 && (
+                                      <div className="px-4 pb-4 border-t border-violet-100 pt-3">
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                          <FiBookOpen className="w-3.5 h-3.5 text-violet-500" />
+                                          <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest">Cited Resources</p>
+                                        </div>
+                                        <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-2">
+                                          {aiAnswerMap[d.id]!.resources.map((r, ri) => (
+                                            <motion.a
+                                              key={ri} variants={fadeUp}
+                                              href={r.url} target="_blank" rel="noopener noreferrer"
+                                              whileHover={{ x: 3 }}
+                                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-violet-700 transition-all group"
+                                              style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.12)' }}
+                                            >
+                                              <span className="text-sm">{RESOURCE_ICONS[r.type] ?? '🔗'}</span>
+                                              <span className="flex-1 truncate">{r.title}</span>
+                                              <FiExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                                            </motion.a>
+                                          ))}
+                                        </motion.div>
+                                      </div>
+                                    )}
+
+                                    {/* Waiting note */}
+                                    <div className="mx-4 mb-4 px-3 py-2 rounded-xl text-[11px] text-amber-700 font-medium flex items-center gap-2" style={{ background: '#fef9c3', border: '1px solid #fde68a' }}>
+                                      <span>⏳</span>
+                                      Human experts from the community can still provide richer, experience-based answers below.
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                               {d.answers?.length > 0 ? (
                                 d.answers.map((a, ai) => {
                                   const ansHasUpvoted = a.upvotedBy?.includes(userProfile?.uid || '');

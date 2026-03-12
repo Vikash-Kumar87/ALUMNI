@@ -160,6 +160,8 @@ export const aiAPI = {
     apiService.post('/ai/job-match', { jobTitle, jobDescription, jobRequirements, candidateSkills, candidateBio, candidateGoals }),
   analyzeSkillGap: (currentSkills: string[], targetRole: string) =>
     apiService.post('/ai/skill-gap', { currentSkills, targetRole }),
+  discussionAnswer: (question: string, tags: string[]) =>
+    apiService.post('/ai/discussion-answer', { question, tags }),
 };
 
 export const notificationsAPI = {
