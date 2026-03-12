@@ -337,6 +337,61 @@ Only return valid JSON, no additional text.`;
   }
 });
 
+// POST /ai/voice-interview-eval - AI voice answer evaluation
+router.post('/voice-interview-eval', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { topic, question, transcript, durationSeconds } = req.body;
+
+    if (!question || !transcript || !topic) {
+      res.status(400).json({ error: 'Question, transcript, and topic are required' });
+      return;
+    }
+
+    const wordCount = transcript.trim().split(/\s+/).length;
+    const wpm = durationSeconds > 0 ? Math.round((wordCount / durationSeconds) * 60) : 0;
+    const paceLabel = wpm > 160 ? 'Too Fast' : wpm < 90 ? 'Too Slow' : 'Good Pace';
+
+    const prompt = `You are an expert interview coach evaluating a candidate's spoken interview answer.
+
+Topic: ${topic}
+Question: ${question}
+Spoken Answer (transcribed): ${transcript}
+Speaking Duration: ${durationSeconds}s | Word Count: ${wordCount} | Speaking Pace: ${wpm} wpm (${paceLabel})
+
+Evaluate both CONTENT quality and DELIVERY. Return ONLY valid JSON with NO other text:
+{
+  "score": number (0-10, content quality),
+  "grade": "Excellent" | "Good" | "Average" | "Needs Improvement",
+  "strengths": ["content strength 1", "content strength 2"],
+  "improvements": ["content improvement 1", "content improvement 2"],
+  "modelAnswer": "A comprehensive model answer for this question",
+  "feedback": "Overall paragraph feedback on content",
+  "voiceInsights": {
+    "confidenceScore": number (0-100, based on vocabulary confidence and completeness),
+    "tone": "Confident" | "Nervous" | "Monotone" | "Engaging",
+    "pace": "${paceLabel}",
+    "wpm": ${wpm},
+    "clarity": number (0-100, how structured and clear the answer was),
+    "tips": ["specific voice coaching tip 1", "specific coaching tip 2", "specific tip 3"],
+    "verdict": "One sentence delivery verdict"
+  }
+}`;
+
+    const responseText = (await generateText(prompt)).trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const evaluation = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+    res.status(200).json({ evaluation });
+  } catch (error) {
+    console.error('Voice interview eval error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait a moment and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable. Please try again.' });
+  }
+});
+
 // POST /ai/cover-letter - AI Cover Letter Generator
 router.post('/cover-letter', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

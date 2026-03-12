@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { aiAPI } from '../services/api';
 import { InterviewQuestion, InterviewEvaluation } from '../types';
 import {
   FiCpu, FiChevronRight, FiStar, FiCheckCircle, FiArrowLeft,
-  FiZap, FiTarget, FiAward, FiCode, FiDatabase, FiLayers, FiTrendingUp
+  FiZap, FiTarget, FiAward, FiCode, FiDatabase, FiLayers, FiTrendingUp,
+  FiMic, FiMicOff, FiType,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TOPICS = [
   { label: 'React', icon: '⚛️' }, { label: 'JavaScript', icon: '🟡' },
@@ -55,9 +57,96 @@ const InterviewPractice: React.FC = () => {
   const [allEvaluations, setAllEvaluations] = useState<(InterviewEvaluation & { question: string })[]>([]);
   const [stageKey, setStageKey] = useState(0);
 
-  const activeTopic = customTopic.trim() || topic;
+  // ── Voice mode state ──
+  const [answerMode,    setAnswerMode]    = useState<'text' | 'voice'>('text');
+  const [recording,     setRecording]     = useState(false);
+  const [transcript,    setTranscript]    = useState('');
+  const [interimText,   setInterimText]   = useState('');
+  const [recSeconds,    setRecSeconds]    = useState(0);
+  const [recDuration,   setRecDuration]   = useState(0);
+  const recRef   = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const bumpStage = () => setStageKey(k => k + 1);
+  // Initialise SpeechRecognition once
+  const initRecognition = useCallback(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return null;
+    const r = new SR();
+    r.continuous     = true;
+    r.interimResults = true;
+    r.lang           = 'en-US';
+    r.onresult = (e: any) => {
+      let fin = '';
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) fin += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
+      }
+      if (fin) setTranscript(prev => prev + fin);
+      setInterimText(interim);
+    };
+    r.onerror = (e: any) => {
+      if (e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
+    };
+    r.onend = () => {
+      setRecording(false);
+      setInterimText('');
+    };
+    return r;
+  }, []);
+
+  const startRecording = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { toast.error('Speech recognition not supported in this browser. Try Chrome.'); return; }
+    setTranscript('');
+    setInterimText('');
+    setRecSeconds(0);
+    const r = initRecognition();
+    if (!r) return;
+    recRef.current = r;
+    r.start();
+    setRecording(true);
+    timerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000);
+  };
+
+  const stopRecording = () => {
+    if (recRef.current) {
+      recRef.current.stop();
+      recRef.current = null;
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setRecDuration(recSeconds);
+    setRecording(false);
+    setInterimText('');
+  };
+
+  // Clean up on unmount
+  useEffect(() => () => {
+    if (recRef.current) recRef.current.stop();
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  // Reset voice state when entering answering stage
+  const handleStartAnswer = () => {
+    setAnswer('');
+    setTranscript('');
+    setInterimText('');
+    setRecSeconds(0);
+    setRecDuration(0);
+    setAnswerMode('text');
+    setEvaluation(null);
+    bumpStage();
+    setStage('answering');
+  };
+
+  const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  const activeTopic = customTopic.trim() || topic;
+  const bumpStage   = () => setStageKey(k => k + 1);
+  const voiceText   = transcript + interimText;
 
   const generateQuestions = async () => {
     if (!activeTopic) { toast.error('Please select or type a topic'); return; }
@@ -76,20 +165,20 @@ const InterviewPractice: React.FC = () => {
     }
   };
 
-  const handleStartAnswer = () => {
-    setAnswer('');
-    setEvaluation(null);
-    bumpStage();
-    setStage('answering');
-  };
-
   const handleSubmitAnswer = async () => {
-    if (!answer.trim()) { toast.error('Please write an answer'); return; }
+    const textToEval = answerMode === 'voice' ? voiceText.trim() : answer.trim();
+    if (!textToEval) { toast.error(answerMode === 'voice' ? 'Record your answer first' : 'Please write an answer'); return; }
     setLoading(true);
     try {
       const currentQ = questions[currentIdx];
-      const res = await aiAPI.evaluateAnswer(activeTopic, currentQ.question, answer);
-      const eval_ = res.data.evaluation as InterviewEvaluation;
+      let eval_: InterviewEvaluation;
+      if (answerMode === 'voice') {
+        const res = await aiAPI.evaluateVoiceAnswer(activeTopic, currentQ.question, textToEval, recDuration || recSeconds);
+        eval_ = res.data.evaluation as InterviewEvaluation;
+      } else {
+        const res = await aiAPI.evaluateAnswer(activeTopic, currentQ.question, textToEval);
+        eval_ = res.data.evaluation as InterviewEvaluation;
+      }
       setEvaluation(eval_);
       setAllEvaluations(prev => [...prev, { ...eval_, question: currentQ.question }]);
       bumpStage();
@@ -102,9 +191,16 @@ const InterviewPractice: React.FC = () => {
   };
 
   const handleNextQuestion = () => {
+    if (recRef.current) { recRef.current.stop(); recRef.current = null; }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (currentIdx + 1 < questions.length) {
       setCurrentIdx(i => i + 1);
       setAnswer('');
+      setTranscript('');
+      setInterimText('');
+      setRecSeconds(0);
+      setRecDuration(0);
+      setRecording(false);
       setEvaluation(null);
       bumpStage();
       setStage('questions');
@@ -375,7 +471,7 @@ const InterviewPractice: React.FC = () => {
           {stage === 'answering' && questions.length > 0 && (
             <div className="bg-white/90 backdrop-blur rounded-2xl border border-gray-100 shadow-card p-6">
               <button
-                onClick={() => { bumpStage(); setStage('questions'); }}
+                onClick={() => { if (recording) stopRecording(); bumpStage(); setStage('questions'); }}
                 className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-600 mb-5 transition-colors"
               >
                 <FiArrowLeft className="w-4 h-4" /> Back to question
@@ -394,36 +490,176 @@ const InterviewPractice: React.FC = () => {
                 </h2>
               </div>
 
-              <label className="label flex items-center gap-1.5">
-                <FiCode className="w-3.5 h-3.5 text-gray-400" /> Your Answer
-              </label>
-              <textarea
-                value={answer}
-                onChange={e => setAnswer(e.target.value)}
-                placeholder="Write your answer here... Be thorough and explain your thinking."
-                className="input mb-1.5 resize-none focus:ring-violet-400/40"
-                rows={9}
-              />
-              <p className="text-xs text-gray-400 mb-5">{answer.length} characters</p>
+              {/* Mode toggle */}
+              <div className="flex gap-2 mb-5 p-1 bg-gray-100 rounded-2xl">
+                {(['text', 'voice'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => { if (recording) stopRecording(); setAnswerMode(m); }}
+                    className="relative flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200"
+                    style={answerMode === m ? {
+                      background: 'white',
+                      color: m === 'voice' ? '#7c3aed' : '#4f46e5',
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                    } : { color: '#9ca3af' }}
+                  >
+                    {answerMode === m && (
+                      <motion.div layoutId="modeBg" className="absolute inset-0 rounded-xl bg-white"
+                        style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      {m === 'text' ? <><FiType className="w-4 h-4" /> Text Answer</> : <><FiMic className="w-4 h-4" /> Voice Answer</>}
+                    </span>
+                  </button>
+                ))}
+              </div>
 
-              <button
-                onClick={handleSubmitAnswer}
-                disabled={loading || !answer.trim()}
-                className="w-full py-3.5 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 relative overflow-hidden group"
-                style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 4px 20px rgba(99,102,241,0.4)' }}
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                    AI is evaluating your answer...
-                  </>
-                ) : (
-                  <><FiCpu className="w-5 h-5" /> Evaluate My Answer</>
+              <AnimatePresence mode="wait">
+
+                {/* ── Text mode ── */}
+                {answerMode === 'text' && (
+                  <motion.div key="text"
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.22 }}
+                  >
+                    <label className="label flex items-center gap-1.5">
+                      <FiCode className="w-3.5 h-3.5 text-gray-400" /> Your Answer
+                    </label>
+                    <textarea
+                      value={answer}
+                      onChange={e => setAnswer(e.target.value)}
+                      placeholder="Write your answer here… Be thorough and explain your thinking."
+                      className="input mb-1.5 resize-none focus:ring-violet-400/40"
+                      rows={9}
+                    />
+                    <p className="text-xs text-gray-400 mb-5">{answer.length} characters</p>
+                    <button
+                      onClick={handleSubmitAnswer}
+                      disabled={loading || !answer.trim()}
+                      className="w-full py-3.5 rounded-xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all duration-200"
+                      style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 4px 20px rgba(99,102,241,0.4)' }}
+                    >
+                      {loading
+                        ? <><svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg> AI is evaluating…</>
+                        : <><FiCpu className="w-5 h-5" /> Evaluate My Answer</>
+                      }
+                    </button>
+                  </motion.div>
                 )}
-              </button>
+
+                {/* ── Voice mode ── */}
+                {answerMode === 'voice' && (
+                  <motion.div key="voice"
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.22 }}
+                    className="space-y-4"
+                  >
+                    {/* Mic button area */}
+                    <div className="flex flex-col items-center py-6 gap-5">
+                      {/* Pulse rings */}
+                      <div className="relative flex items-center justify-center">
+                        {recording && (
+                          <>
+                            <motion.div className="absolute rounded-full border-2 border-violet-400/40"
+                              animate={{ width: [80, 130, 80], height: [80, 130, 80], opacity: [0.6, 0, 0.6] }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                            />
+                            <motion.div className="absolute rounded-full border-2 border-violet-300/30"
+                              animate={{ width: [80, 170, 80], height: [80, 170, 80], opacity: [0.4, 0, 0.4] }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+                            />
+                          </>
+                        )}
+                        <motion.button
+                          onClick={recording ? stopRecording : startRecording}
+                          whileHover={{ scale: 1.07 }} whileTap={{ scale: 0.94 }}
+                          className="relative w-20 h-20 rounded-full flex items-center justify-center shadow-xl z-10"
+                          style={{
+                            background: recording
+                              ? 'linear-gradient(135deg,#ef4444,#dc2626)'
+                              : 'linear-gradient(135deg,#7c3aed,#4f46e5)',
+                            boxShadow: recording
+                              ? '0 8px 32px rgba(239,68,68,0.45)'
+                              : '0 8px 32px rgba(124,58,237,0.45)',
+                          }}
+                        >
+                          {recording
+                            ? <FiMicOff className="w-8 h-8 text-white" />
+                            : <FiMic className="w-8 h-8 text-white" />
+                          }
+                        </motion.button>
+                      </div>
+
+                      {/* Timer + waveform */}
+                      <div className="flex flex-col items-center gap-2">
+                        {recording ? (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <motion.div className="w-2 h-2 rounded-full bg-red-500"
+                                animate={{ opacity: [1, 0, 1] }} transition={{ duration: 1, repeat: Infinity }}
+                              />
+                              <span className="font-mono text-lg font-bold text-gray-800">{fmtTime(recSeconds)}</span>
+                            </div>
+                            {/* Waveform bars */}
+                            <div className="flex items-center gap-0.5 h-8">
+                              {Array.from({ length: 20 }).map((_, i) => (
+                                <motion.div
+                                  key={i}
+                                  className="w-1 rounded-full bg-gradient-to-t from-violet-500 to-purple-400"
+                                  animate={{ height: ['6px', `${10 + Math.random() * 22}px`, '6px'] }}
+                                  transition={{ duration: 0.4 + Math.random() * 0.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.05 }}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-400 text-center">
+                            {voiceText.trim()
+                              ? <span className="text-emerald-600 font-medium">✓ Answer recorded ({recDuration}s)</span>
+                              : 'Press the mic and speak your answer clearly'
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Live transcript */}
+                    {(voiceText || recording) && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                        className="bg-gray-50 rounded-2xl border border-gray-200 p-4 min-h-[80px]"
+                      >
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <div className="w-4 h-4 rounded-full bg-violet-100 flex items-center justify-center">
+                            <FiMic className="w-2.5 h-2.5 text-violet-600" />
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Live Transcript</span>
+                        </div>
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                          {transcript}
+                          {interimText && <span className="text-gray-400 italic">{interimText}</span>}
+                          {!voiceText && <span className="text-gray-400 italic">Listening…</span>}
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {/* Evaluate button */}
+                    <button
+                      onClick={handleSubmitAnswer}
+                      disabled={loading || !voiceText.trim() || recording}
+                      className="w-full py-3.5 rounded-xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:-translate-y-0.5"
+                      style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }}
+                    >
+                      {loading
+                        ? <><svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg> AI is evaluating voice answer…</>
+                        : <><FiZap className="w-5 h-5" /> Evaluate Voice Answer</>
+                      }
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -511,6 +747,108 @@ const InterviewPractice: React.FC = () => {
                 </h4>
                 <p className="text-sm text-gray-700 leading-relaxed">{evaluation.modelAnswer}</p>
               </div>
+
+              {/* Voice delivery analysis */}
+              {evaluation.voiceInsights && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="rounded-2xl border border-violet-200 overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg,#f5f3ff,#eef2ff)' }}
+                >
+                  <div className="flex items-center gap-2 px-5 pt-5 pb-3">
+                    <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
+                      <FiMic className="w-4 h-4 text-violet-600" />
+                    </div>
+                    <h4 className="font-bold text-violet-800 text-sm">Voice Delivery Analysis</h4>
+                  </div>
+
+                  {/* Metric row */}
+                  <div className="grid grid-cols-3 gap-3 px-5 pb-4">
+                    {/* Confidence */}
+                    <div className="bg-white/80 rounded-xl p-3 flex flex-col items-center gap-1.5 border border-violet-100">
+                      <svg width="60" height="36" viewBox="0 0 60 36">
+                        <path d="M5 35 A25 25 0 0 1 55 35" fill="none" stroke="#e9d5ff" strokeWidth="5" strokeLinecap="round" />
+                        <motion.path d="M5 35 A25 25 0 0 1 55 35" fill="none" stroke="#7c3aed" strokeWidth="5" strokeLinecap="round"
+                          strokeDasharray={String(Math.PI * 25)}
+                          initial={{ strokeDashoffset: Math.PI * 25 }}
+                          animate={{ strokeDashoffset: Math.PI * 25 * (1 - evaluation.voiceInsights.confidenceScore / 100) }}
+                          transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
+                        />
+                        <text x="30" y="34" textAnchor="middle" fontSize="11" fontWeight="700" fill="#5b21b6">
+                          {evaluation.voiceInsights.confidenceScore}%
+                        </text>
+                      </svg>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Confidence</span>
+                    </div>
+                    {/* Clarity */}
+                    <div className="bg-white/80 rounded-xl p-3 flex flex-col items-center gap-1.5 border border-violet-100">
+                      <svg width="60" height="36" viewBox="0 0 60 36">
+                        <path d="M5 35 A25 25 0 0 1 55 35" fill="none" stroke="#ddd6fe" strokeWidth="5" strokeLinecap="round" />
+                        <motion.path d="M5 35 A25 25 0 0 1 55 35" fill="none" stroke="#4f46e5" strokeWidth="5" strokeLinecap="round"
+                          strokeDasharray={String(Math.PI * 25)}
+                          initial={{ strokeDashoffset: Math.PI * 25 }}
+                          animate={{ strokeDashoffset: Math.PI * 25 * (1 - evaluation.voiceInsights.clarity / 100) }}
+                          transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
+                        />
+                        <text x="30" y="34" textAnchor="middle" fontSize="11" fontWeight="700" fill="#3730a3">
+                          {evaluation.voiceInsights.clarity}%
+                        </text>
+                      </svg>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Clarity</span>
+                    </div>
+                    {/* Pace */}
+                    <div className="bg-white/80 rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 border border-violet-100">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                        evaluation.voiceInsights.pace.toLowerCase().includes('good') ? 'bg-emerald-100 text-emerald-700' :
+                        evaluation.voiceInsights.pace.toLowerCase().includes('fast') ? 'bg-rose-100 text-rose-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {evaluation.voiceInsights.pace}
+                      </span>
+                      <p className="text-xs text-gray-500 font-semibold">{evaluation.voiceInsights.wpm} wpm</p>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pace</span>
+                    </div>
+                  </div>
+
+                  {/* Tone badge */}
+                  <div className="px-5 pb-4 flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-semibold">Tone:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      evaluation.voiceInsights.tone === 'Confident' ? 'bg-emerald-100 text-emerald-700' :
+                      evaluation.voiceInsights.tone === 'Engaging' ? 'bg-violet-100 text-violet-700' :
+                      evaluation.voiceInsights.tone === 'Nervous' ? 'bg-rose-100 text-rose-700' :
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {evaluation.voiceInsights.tone}
+                    </span>
+                    {evaluation.voiceInsights.verdict && (
+                      <span className="ml-auto text-xs text-gray-600 italic">{evaluation.voiceInsights.verdict}</span>
+                    )}
+                  </div>
+
+                  {/* Delivery tips */}
+                  {evaluation.voiceInsights.tips.length > 0 && (
+                    <div className="px-5 pb-5">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Delivery Tips</p>
+                      <ul className="space-y-1.5">
+                        {evaluation.voiceInsights.tips.map((tip, i) => (
+                          <motion.li key={i}
+                            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.35 + i * 0.08 }}
+                            className="flex items-start gap-2 text-xs text-gray-700"
+                          >
+                            <span className="w-4 h-4 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">
+                              {i + 1}
+                            </span>
+                            {tip}
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </motion.div>
+              )}
 
               {/* Next button */}
               <button

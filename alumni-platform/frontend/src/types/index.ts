@@ -125,6 +125,15 @@ export interface InterviewEvaluation {
   improvements: string[];
   modelAnswer: string;
   feedback: string;
+  voiceInsights?: {
+    confidenceScore: number;
+    tone: string;
+    pace: string;
+    wpm: number;
+    clarity: number;
+    tips: string[];
+    verdict: string;
+  };
 }
 
 export interface RoadmapPhase {

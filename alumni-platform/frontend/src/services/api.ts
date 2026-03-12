@@ -133,6 +133,8 @@ export const aiAPI = {
     apiService.post('/ai/interview', { action: 'generate', topic, difficulty }),
   evaluateAnswer: (topic: string, question: string, answer: string) =>
     apiService.post('/ai/interview', { action: 'evaluate', topic, question, answer }),
+  evaluateVoiceAnswer: (topic: string, question: string, transcript: string, durationSeconds: number) =>
+    apiService.post('/ai/voice-interview-eval', { topic, question, transcript, durationSeconds }),
   getMentorRecommendations: () => apiService.post('/ai/mentor-recommend'),
   getSkillRoadmap: (goal: string, currentSkills: string[], timeframe: string) =>
     apiService.post('/ai/skill-roadmap', { goal, currentSkills, timeframe }),
