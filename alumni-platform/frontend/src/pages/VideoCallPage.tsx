@@ -109,9 +109,10 @@ const VideoCallPage: React.FC = () => {
 
       apiRef.current = new window.JitsiMeetExternalAPI(domain, options);
 
+      // Hide our overlay immediately — Jitsi is mounted and ready for interaction
+      setLoading(false);
+
       apiRef.current.addEventListener('videoConferenceJoined', () => {
-        setLoading(false);
-        setCallStarted(true);
         toast.success('Connected! Video call started 🎥');
       });
 
