@@ -6,9 +6,12 @@ import { User } from '../types';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '../config/firebase';
 import {
   FiSend, FiSearch, FiUser, FiArrowLeft, FiLock, FiCalendar, FiMessageCircle,
   FiZap, FiX, FiCheckCircle, FiBookOpen, FiExternalLink, FiClipboard, FiCheck, FiVideo,
+  FiPaperclip, FiImage, FiFile, FiDownload,
 } from 'react-icons/fi';
 
 interface SessionSummary {
@@ -42,6 +45,10 @@ interface RealTimeMessage {
   senderPhoto?: string | null;
   text: string;
   createdAt: string;
+  messageType?: 'text' | 'image' | 'file' | 'video_call_link';
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
 }
 
 interface Conversation {
@@ -63,6 +70,8 @@ const ChatPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
   const [chatLocked, setChatLocked] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
@@ -236,6 +245,55 @@ const ChatPage: React.FC = () => {
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedUser || !userProfile) return;
+
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+    if (!isImage && !isPdf) {
+      toast.error('Only images and PDFs are supported');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be under 10 MB');
+      return;
+    }
+
+    const path = `chat-files/${[userProfile.uid, selectedUser.userId].sort().join('_')}/${Date.now()}_${file.name}`;
+    const sRef = storageRef(storage, path);
+    const uploadTask = uploadBytesResumable(sRef, file);
+
+    setUploadProgress(0);
+    uploadTask.on(
+      'state_changed',
+      snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+      () => { toast.error('Upload failed'); setUploadProgress(null); },
+      async () => {
+        try {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          const msgType = isImage ? 'image' : 'file';
+          const text = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
+          await chatAPI.sendMessage(selectedUser.userId, text, {
+            messageType: msgType,
+            fileUrl: url,
+            fileName: file.name,
+            fileSize: file.size,
+          });
+          const chatRoomId = [userProfile.uid, selectedUser.userId].sort().join('_');
+          await fetchMessages(chatRoomId);
+          toast.success(isImage ? 'Image sent!' : 'File sent!');
+        } catch {
+          toast.error('Failed to send file');
+        } finally {
+          setUploadProgress(null);
+        }
+      }
+    );
+    // reset input so same file can be re-selected
+    e.target.value = '';
   };
 
   // Separate by tab
@@ -536,7 +594,7 @@ const ChatPage: React.FC = () => {
                           room,
                           callLink,
                         ).catch(() => {/* silent */});
-                        navigate(`/video-call?room=${room}&peer=${encodeURIComponent(selectedUser.displayName)}`);
+                        navigate(`/video-call?room=${room}&peer=${encodeURIComponent(selectedUser.displayName)}&receiverId=${selectedUser.userId}`);
                       }}
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all"
@@ -601,18 +659,59 @@ const ChatPage: React.FC = () => {
                           </div>
                         ) : null}
 
-                        <div className={`max-w-[75%] sm:max-w-xs lg:max-w-sm flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}>
-                          <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
-                            isOwn
-                              ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm shadow-lg shadow-violet-200/50'
-                              : 'bg-white text-gray-800 shadow-sm rounded-bl-sm border border-gray-100'
-                          } ${msg.id.startsWith('temp_') ? 'opacity-70' : 'opacity-100'}`}>
-                            {msg.text}
+                          <div className={`max-w-[75%] sm:max-w-xs lg:max-w-sm flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}>
+                            <div className={`rounded-2xl text-sm leading-relaxed transition-all overflow-hidden ${
+                              isOwn
+                                ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm shadow-lg shadow-violet-200/50'
+                                : 'bg-white text-gray-800 shadow-sm rounded-bl-sm border border-gray-100'
+                            } ${msg.id.startsWith('temp_') ? 'opacity-70' : 'opacity-100'}`}>
+                              {/* Image */}
+                              {msg.messageType === 'image' && msg.fileUrl ? (
+                                <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                                  <img src={msg.fileUrl} alt={msg.fileName || 'image'} className="max-w-[240px] max-h-[240px] object-cover rounded-2xl block" />
+                                </a>
+                              ) : msg.messageType === 'file' && msg.fileUrl ? (
+                                /* PDF / File */
+                                <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer"
+                                  className={`flex items-center gap-3 px-4 py-3 ${isOwn ? 'text-white' : 'text-gray-800'}`}>
+                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isOwn ? 'bg-white/20' : 'bg-indigo-100'}`}>
+                                    <FiFile className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-indigo-600'}`} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-xs truncate max-w-[160px]">{msg.fileName || 'File'}</p>
+                                    {msg.fileSize && <p className={`text-[10px] mt-0.5 ${isOwn ? 'text-white/60' : 'text-gray-400'}`}>{(msg.fileSize / 1024).toFixed(0)} KB</p>}
+                                  </div>
+                                  <FiDownload className={`w-4 h-4 flex-shrink-0 ${isOwn ? 'text-white/70' : 'text-indigo-400'}`} />
+                                </a>
+                              ) : msg.messageType === 'video_call_link' ? (
+                                /* Video call link card */
+                                <a href={msg.text} target="_blank" rel="noopener noreferrer"
+                                  className={`flex items-center gap-3 px-4 py-3 ${isOwn ? 'text-white' : 'text-gray-800'}`}>
+                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isOwn ? 'bg-white/20' : 'bg-emerald-100'}`}>
+                                    <FiVideo className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-emerald-600'}`} />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-xs">Video Call Invite</p>
+                                    <p className={`text-[10px] mt-0.5 ${isOwn ? 'text-white/60' : 'text-gray-400'}`}>Click to join</p>
+                                  </div>
+                                  <FiExternalLink className={`w-4 h-4 flex-shrink-0 ${isOwn ? 'text-white/70' : 'text-emerald-500'}`} />
+                                </a>
+                              ) : (
+                                /* Plain text — auto-detect URLs */
+                                <p className="px-4 py-2.5">
+                                  {/^https?:\/\//.test(msg.text) ? (
+                                    <a href={msg.text} target="_blank" rel="noopener noreferrer"
+                                      className={`underline break-all ${isOwn ? 'text-white/90' : 'text-indigo-600'}`}>
+                                      {msg.text}
+                                    </a>
+                                  ) : msg.text}
+                                </p>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-400 px-1">
+                              {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                            </p>
                           </div>
-                          <p className="text-[10px] text-gray-400 px-1">
-                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
                       </div>
                     );
                   })
@@ -621,29 +720,61 @@ const ChatPage: React.FC = () => {
               </div>
 
               {/* Input */}
-              <form onSubmit={sendMessage} className="p-3 border-t border-gray-100 bg-white flex gap-2 items-center">
-                <div className="flex-1 relative">
+              <div className="border-t border-gray-100 bg-white">
+                {/* Upload progress bar */}
+                {uploadProgress !== null && (
+                  <div className="px-3 pt-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-indigo-600 font-medium">Uploading… {uploadProgress}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+                <form onSubmit={sendMessage} className="p-3 flex gap-2 items-center">
+                  {/* Hidden file input */}
                   <input
-                    type="text"
-                    value={newMessage}
-                    onChange={e => setNewMessage(e.target.value)}
-                    placeholder={`Message ${selectedUser!.displayName}...`}
-                    disabled={sendingMessage}
-                    className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white transition-all placeholder-gray-400 pr-4"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={handleFileUpload}
                   />
-                </div>
-                <button
-                  type="submit"
-                  disabled={sendingMessage || !newMessage.trim()}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-200 hover:shadow-violet-300 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none flex-shrink-0"
-                >
-                  {sendingMessage ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <FiSend className="w-4 h-4" />
-                  )}
-                </button>
-              </form>
+                  {/* Attachment button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadProgress !== null}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-all flex-shrink-0 disabled:opacity-40"
+                    title="Send image or PDF"
+                  >
+                    <FiPaperclip className="w-4 h-4" />
+                  </button>
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={e => setNewMessage(e.target.value)}
+                      placeholder={`Message ${selectedUser!.displayName}...`}
+                      disabled={sendingMessage || uploadProgress !== null}
+                      className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white transition-all placeholder-gray-400 pr-4"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={sendingMessage || !newMessage.trim() || uploadProgress !== null}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-200 hover:shadow-violet-300 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none flex-shrink-0"
+                  >
+                    {sendingMessage ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FiSend className="w-4 h-4" />
+                    )}
+                  </button>
+                </form>
+              </div>
 
               {/* ── SESSION SUMMARY MODAL ── */}
               <AnimatePresence>

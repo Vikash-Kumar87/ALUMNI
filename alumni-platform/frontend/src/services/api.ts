@@ -120,8 +120,11 @@ export const jobsAPI = {
 };
 
 export const chatAPI = {
-  sendMessage: (receiverId: string, message: string) =>
-    apiService.post('/chat', { receiverId, message }),
+  sendMessage: (
+    receiverId: string,
+    message: string,
+    extra?: { messageType?: string; fileUrl?: string; fileName?: string; fileSize?: number },
+  ) => apiService.post('/chat', { receiverId, message, ...extra }),
   getConversations: () => apiService.get('/chat/conversations'),
   getMessages: (chatRoomId: string) => apiService.get(`/chat/${chatRoomId}`),
 };

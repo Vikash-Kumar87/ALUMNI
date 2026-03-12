@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { chatAPI } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhone, FiCopy,
-  FiCheck, FiUsers, FiMaximize2, FiMinimize2, FiArrowLeft, FiShare2,
+  FiCheck, FiUsers, FiMaximize2, FiMinimize2, FiArrowLeft, FiShare2, FiMessageCircle,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -26,6 +27,7 @@ const VideoCallPage: React.FC = () => {
 
   const peerName = searchParams.get('peer') || 'Peer';
   const rawRoom = searchParams.get('room') || '';
+  const receiverId = searchParams.get('receiverId') || '';
   // Sanitize room to only alphanumeric + hyphens (Jitsi requirement)
   const roomName = rawRoom
     ? `alumniconnect-${rawRoom.replace(/[^a-zA-Z0-9]/g, '').slice(0, 48)}`
@@ -34,6 +36,7 @@ const VideoCallPage: React.FC = () => {
   const [callStarted, setCallStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [timer, setTimer] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -144,6 +147,20 @@ const VideoCallPage: React.FC = () => {
     }
   };
 
+  /* ── Send call link to chat ─────────────────────────────── */
+  const sendLinkToChat = async () => {
+    if (!receiverId || !userProfile) return;
+    const callLink = `${window.location.origin}/video-call?room=${rawRoom}&peer=${encodeURIComponent(userProfile.name || '')}`;
+    try {
+      await chatAPI.sendMessage(receiverId, callLink, { messageType: 'video_call_link' });
+      setLinkSent(true);
+      toast.success('Call link sent in chat!');
+      setTimeout(() => setLinkSent(false), 3000);
+    } catch {
+      toast.error('Could not send link to chat');
+    }
+  };
+
   /* ── Copy room link ────────────────────────────────────────── */
   const copyLink = async () => {
     const link = `${window.location.origin}/video-call?room=${rawRoom}&peer=${encodeURIComponent(userProfile?.name || '')}`;
@@ -209,6 +226,19 @@ const VideoCallPage: React.FC = () => {
             )}
           </div>
 
+          <div className="flex items-center gap-2">
+          {/* Send link to chat — only shown when there's a peer to send to */}
+          {receiverId && (
+            <button
+              onClick={sendLinkToChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 text-white/80 hover:text-white"
+              style={{ background: linkSent ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${linkSent ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.12)'}` }}
+            >
+              {linkSent ? <FiCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FiMessageCircle className="w-3.5 h-3.5" />}
+              <span className="hidden sm:block">{linkSent ? 'Sent!' : 'Send in Chat'}</span>
+            </button>
+          )}
+
           <button
             onClick={copyLink}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 text-white/80 hover:text-white"
@@ -217,6 +247,7 @@ const VideoCallPage: React.FC = () => {
             {copied ? <FiCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FiShare2 className="w-3.5 h-3.5" />}
             <span className="hidden sm:block">{copied ? 'Copied!' : 'Share Link'}</span>
           </button>
+          </div>
         </div>
       </div>
 

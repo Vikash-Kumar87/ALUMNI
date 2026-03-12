@@ -9,7 +9,7 @@ const router = Router();
 // POST /chat - Send a message
 router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { receiverId, message } = req.body;
+    const { receiverId, message, messageType, fileUrl, fileName, fileSize } = req.body;
     const senderId = req.user?.uid;
 
     if (!receiverId || !message || !senderId) {
@@ -26,13 +26,17 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<v
     const createdAt = new Date().toISOString();
 
     // Store in the format the frontend onValue listener expects
-    const messageData = {
+    const messageData: Record<string, unknown> = {
       senderId,
       senderName: senderData?.name || 'Unknown',
       senderPhoto: senderData?.avatar || null,
       text: message,
+      messageType: messageType || 'text',
       createdAt,
     };
+    if (fileUrl) messageData.fileUrl = fileUrl;
+    if (fileName) messageData.fileName = fileName;
+    if (fileSize) messageData.fileSize = fileSize;
 
     // Store in Firestore messages sub-collection
     const messagesRef = db.collection('chats').doc(chatRoomId).collection('messages');
