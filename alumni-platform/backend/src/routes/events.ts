@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { db } from '../config/firebase';
 import { verifyToken, AuthRequest } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
+import * as admin from 'firebase-admin';
 
 const router = Router();
 
@@ -118,7 +119,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { type, status, organizer, upcoming } = req.query;
     
-    let query = db.collection('events');
+    let query: admin.firestore.Query<admin.firestore.DocumentData> | admin.firestore.CollectionReference<admin.firestore.DocumentData> = db.collection('events');
 
     if (type) {
       query = query.where('type', '==', type);
@@ -389,7 +390,7 @@ router.get('/my/registrations', verifyToken, async (req: AuthRequest, res: Respo
     for (let i = 0; i < eventIds.length; i += 10) {
       const batch = eventIds.slice(i, i + 10);
       const eventsSnapshot = await db.collection('events')
-        .where(db.FieldPath.documentId(), 'in', batch)  // Use document ID instead of 'id' field
+        .where(admin.firestore.FieldPath.documentId(), 'in', batch)  // Use document ID instead of 'id' field
         .get();
       
       eventsSnapshot.docs.forEach(doc => {
