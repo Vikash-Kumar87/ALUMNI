@@ -18,7 +18,26 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
     const existingUser = await userRef.get();
 
     if (existingUser.exists) {
-      res.status(409).json({ error: 'User already exists' });
+      // Google two-step flow: basic profile was already created by signInWithGoogle,
+      // this second call completes it with full profile fields — just update the doc.
+      const updateData: Record<string, unknown> = {
+        skills: skills || [],
+        updatedAt: new Date().toISOString(),
+      };
+      if (role === 'student') {
+        if (branch !== undefined) updateData.branch = branch;
+        if (year !== undefined) updateData.year = year;
+        if (interests !== undefined) updateData.interests = interests || [];
+        if (goals !== undefined) updateData.goals = goals;
+      } else if (role === 'alumni') {
+        if (company !== undefined) updateData.company = company;
+        if (jobRole !== undefined) updateData.jobRole = jobRole;
+        if (experience !== undefined) updateData.experience = experience;
+        if (linkedin !== undefined) updateData.linkedin = linkedin;
+      }
+      await userRef.update(updateData);
+      const updatedDoc = await userRef.get();
+      res.status(200).json({ message: 'Profile updated successfully', user: updatedDoc.data() });
       return;
     }
 
