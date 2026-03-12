@@ -337,6 +337,54 @@ Only return valid JSON, no additional text.`;
   }
 });
 
+// POST /ai/cover-letter - AI Cover Letter Generator
+router.post('/cover-letter', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { applicantName, targetRole, company, jobDescription, background, tone } = req.body;
+
+    if (!targetRole || !company) {
+      res.status(400).json({ error: 'Target role and company are required' });
+      return;
+    }
+
+    const toneGuide: Record<string, string> = {
+      professional: 'formal, polished, confident, corporate language',
+      enthusiastic: 'warm, energetic, passionate, personable, uses light enthusiasm',
+      creative:     'bold, creative, distinctive, shows personality and originality',
+    };
+
+    const prompt = `You are an expert cover letter writer. Write a compelling, personalised cover letter.
+
+Applicant Name: ${applicantName || 'Applicant'}
+Target Role: ${targetRole}
+Company: ${company}
+Job Description: ${jobDescription || 'Not provided'}
+Applicant Background & Skills: ${background || 'Not provided'}
+Tone: ${tone || 'professional'} — ${toneGuide[tone] || toneGuide['professional']}
+
+Return ONLY a valid JSON object with NO other text:
+{
+  "subject": "Email subject line for this application",
+  "body": "Full cover letter body text. Use double newlines (\\n\\n) between paragraphs. Include: opening hook, why this role/company, relevant skills/experience, closing call to action. 3-4 paragraphs.",
+  "wordCount": number,
+  "tone": "${tone || 'professional'}"
+}`;
+
+    const responseText = (await generateText(prompt)).trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const letter = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+    res.status(200).json({ letter });
+  } catch (error) {
+    console.error('Cover letter error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait a moment and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable. Please try again.' });
+  }
+});
+
 // POST /ai/job-match - AI Job Match Score
 router.post('/job-match', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

@@ -24,6 +24,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import SkillRoadmap from './pages/SkillRoadmap';
 import PaymentSuccess from './pages/PaymentSuccess';
 import ResumeAnalyzer from './pages/ResumeAnalyzer';
+import CoverLetterGenerator from './pages/CoverLetterGenerator';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -170,6 +171,15 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute requiredRole="student">
                 <ResumeAnalyzer />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+
+          {/* Cover Letter Generator — student only */}
+          <Route path="/cover-letter" element={
+            <AppLayout>
+              <ProtectedRoute requiredRole="student">
+                <CoverLetterGenerator />
               </ProtectedRoute>
             </AppLayout>
           } />

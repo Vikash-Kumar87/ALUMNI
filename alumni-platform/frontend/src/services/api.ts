@@ -138,6 +138,15 @@ export const aiAPI = {
     apiService.post('/ai/skill-roadmap', { goal, currentSkills, timeframe }),
   reviewResume: (resumeText: string, targetRole: string) =>
     apiService.post('/ai/resume-review', { resumeText, targetRole }),
+  generateCoverLetter: (
+    applicantName: string,
+    targetRole: string,
+    company: string,
+    jobDescription: string,
+    background: string,
+    tone: string,
+  ) =>
+    apiService.post('/ai/cover-letter', { applicantName, targetRole, company, jobDescription, background, tone }),
   matchJob: (
     jobTitle: string,
     jobDescription: string,
