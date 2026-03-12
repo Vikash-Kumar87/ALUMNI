@@ -1,13 +1,36 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { usersAPI, chatAPI, paymentsAPI } from '../services/api';
+import { usersAPI, chatAPI, paymentsAPI, aiAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
-  FiSend, FiSearch, FiUser, FiArrowLeft, FiLock, FiCalendar, FiMessageCircle
+  FiSend, FiSearch, FiUser, FiArrowLeft, FiLock, FiCalendar, FiMessageCircle,
+  FiZap, FiX, FiCheckCircle, FiBookOpen, FiExternalLink, FiClipboard, FiCheck,
 } from 'react-icons/fi';
+
+interface SessionSummary {
+  title: string;
+  overview: string;
+  keyPoints: string[];
+  actionItems: { task: string; assignedTo: string }[];
+  resources: { title: string; url: string; type: string }[];
+  mood: string;
+  nextSteps: string;
+}
+
+const MOOD_STYLE: Record<string, { bg: string; text: string; emoji: string }> = {
+  productive:       { bg: 'bg-emerald-100', text: 'text-emerald-700', emoji: '⚡' },
+  exploratory:      { bg: 'bg-sky-100',     text: 'text-sky-700',     emoji: '🔭' },
+  'problem-solving':{ bg: 'bg-amber-100',   text: 'text-amber-700',   emoji: '🧩' },
+  motivational:     { bg: 'bg-violet-100',  text: 'text-violet-700',  emoji: '🚀' },
+};
+const RESOURCE_ICONS: Record<string, string> = { docs: '📄', article: '📰', video: '🎬', course: '🎓' };
+
+const stagger: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const fadeUp: Variants  = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } } };
 import { HiAcademicCap } from 'react-icons/hi';
 import { MdSchool, MdPeople } from 'react-icons/md';
 import { formatDistanceToNow } from 'date-fns';
@@ -43,6 +66,10 @@ const ChatPage: React.FC = () => {
   const [chatLocked, setChatLocked] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [lockedMentor, setLockedMentor] = useState<{ price_per_session: number; name: string; uid: string } | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summary, setSummary] = useState<SessionSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryCopied, setSummaryCopied] = useState(false);
   // Tab defaults to logged-in user's own role
   const [activeTab, setActiveTab] = useState<'alumni' | 'student'>('alumni');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -144,6 +171,43 @@ const ChatPage: React.FC = () => {
     const chatRoomId = [userProfile!.uid, conv.userId].sort().join('_');
     fetchMessages(chatRoomId);
     pollIntervalRef.current = setInterval(() => fetchMessages(chatRoomId), 2000);
+  };
+
+  const handleSummarize = async () => {
+    if (!selectedUser || messages.length === 0) return;
+    setSummary(null);
+    setShowSummary(true);
+    setSummaryLoading(true);
+    try {
+      const isMentor = selectedUser.role === 'alumni';
+      const mentorName = isMentor ? selectedUser.displayName : userProfile!.name;
+      const studentName = isMentor ? userProfile!.name : selectedUser.displayName;
+      const msgPayload = messages
+        .filter(m => !m.id.startsWith('temp_'))
+        .map(m => ({ senderName: m.senderName, text: m.text }));
+      const res = await aiAPI.summarizeSession(msgPayload, mentorName, studentName);
+      setSummary(res.data.summary);
+    } catch (err) {
+      toast.error((err as Error).message || 'Failed to summarize session');
+      setShowSummary(false);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleCopySummary = async () => {
+    if (!summary) return;
+    const text = [
+      `📋 ${summary.title}`,
+      `\n${summary.overview}`,
+      `\n\n✅ Key Points:\n${summary.keyPoints.map(k => `• ${k}`).join('\n')}`,
+      `\n\n🎯 Action Items:\n${summary.actionItems.map(a => `• [${a.assignedTo}] ${a.task}`).join('\n')}`,
+      summary.nextSteps ? `\n\n👉 Next: ${summary.nextSteps}` : '',
+    ].join('');
+    await navigator.clipboard.writeText(text);
+    setSummaryCopied(true);
+    toast.success('Summary copied!');
+    setTimeout(() => setSummaryCopied(false), 2500);
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -422,7 +486,7 @@ const ChatPage: React.FC = () => {
 
           /* Active chat */
           ) : (
-            <div className="flex-1 flex flex-col overflow-hidden bg-white">
+            <div className="flex-1 flex flex-col overflow-hidden bg-white relative">
 
               {/* Chat header */}
               <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 bg-white/80 backdrop-blur-sm">
@@ -452,11 +516,190 @@ const ChatPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-xs text-green-600 font-medium">Active</span>
+                <div className="flex items-center gap-2">
+                  {messages.length >= 2 && (
+                    <motion.button
+                      onClick={handleSummarize}
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all"
+                      style={{ background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', boxShadow: '0 2px 10px rgba(139,92,246,0.4)' }}
+                    >
+                      <FiZap className="w-3 h-3" />
+                      <span className="hidden sm:inline">Summarize</span>
+                    </motion.button>
+                  )}
+                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-xs text-green-600 font-medium">Active</span>
+                  </div>
                 </div>
               </div>
+
+              {/* ── SESSION SUMMARY MODAL ── */}
+              <AnimatePresence>
+                {showSummary && (
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-50 flex items-start justify-end p-3"
+                    style={{ background: 'rgba(15,10,40,0.45)', backdropFilter: 'blur(4px)' }}
+                    onClick={e => { if (e.target === e.currentTarget) setShowSummary(false); }}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, x: 60, scale: 0.95 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 60, scale: 0.95 }}
+                      transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+                      className="w-full max-w-sm h-full overflow-y-auto rounded-2xl shadow-2xl flex flex-col"
+                      style={{ background: 'linear-gradient(160deg,#faf5ff,#eef2ff,#f0fdf4)' }}
+                    >
+                      {/* Modal header */}
+                      <div className="flex items-center gap-2.5 px-4 pt-4 pb-3 border-b border-violet-100 sticky top-0 z-10" style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.1),rgba(99,102,241,0.07))' }}>
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', boxShadow: '0 2px 10px rgba(139,92,246,0.4)' }}>
+                          <FiZap className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-violet-800">AI Session Summary</p>
+                          <p className="text-[10px] text-violet-400 truncate">{selectedUser!.displayName} · {messages.filter(m=>!m.id.startsWith('temp_')).length} messages</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {summary && (
+                            <motion.button onClick={handleCopySummary} whileTap={{ scale: 0.9 }}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                              style={{ background: summaryCopied ? '#dcfce7' : '#ede9fe' }}
+                            >
+                              {summaryCopied ? <FiCheck className="w-3.5 h-3.5 text-emerald-600" /> : <FiClipboard className="w-3.5 h-3.5 text-violet-600" />}
+                            </motion.button>
+                          )}
+                          <button onClick={() => setShowSummary(false)} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                            <FiX className="w-3.5 h-3.5 text-gray-500" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Loading state */}
+                      {summaryLoading && (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-4 py-10 px-4">
+                          <div className="relative w-14 h-14">
+                            <motion.div className="absolute inset-0 rounded-full border-2 border-violet-200"
+                              animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                            />
+                            <motion.div className="absolute inset-1 rounded-full border-2 border-t-violet-500 border-transparent"
+                              animate={{ rotate: -360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+                            />
+                            <FiZap className="absolute inset-0 m-auto w-5 h-5 text-violet-600" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-violet-800">Analyzing session…</p>
+                            <p className="text-xs text-violet-400 mt-1">Extracting insights & action items</p>
+                          </div>
+                          <div className="w-full space-y-2 px-2">
+                            {[0.9,0.7,0.8,0.6].map((w,i)=>(
+                              <div key={i} className="h-3 rounded-full skeleton" style={{ width:`${w*100}%` }} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Summary content */}
+                      {summary && !summaryLoading && (
+                        <motion.div variants={stagger} initial="hidden" animate="show" className="flex-1 px-4 py-3 space-y-4">
+
+                          {/* Title + mood */}
+                          <motion.div variants={fadeUp}>
+                            <h3 className="font-black text-gray-900 text-sm leading-snug mb-1.5">{summary.title}</h3>
+                            {summary.mood && (() => { const m = MOOD_STYLE[summary.mood] ?? MOOD_STYLE.productive; return (
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full ${m.bg} ${m.text}`}>
+                                {m.emoji} {summary.mood.replace('-',' ')}
+                              </span>
+                            ); })()}
+                          </motion.div>
+
+                          {/* Overview */}
+                          <motion.div variants={fadeUp} className="bg-white/70 rounded-xl p-3 border border-violet-100">
+                            <p className="text-xs text-gray-700 leading-relaxed">{summary.overview}</p>
+                          </motion.div>
+
+                          {/* Key points */}
+                          {summary.keyPoints?.length > 0 && (
+                            <motion.div variants={fadeUp}>
+                              <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest mb-2">Key Discussion Points</p>
+                              <motion.ul variants={stagger} initial="hidden" animate="show" className="space-y-1.5">
+                                {summary.keyPoints.map((kp, i) => (
+                                  <motion.li key={i} variants={fadeUp} className="flex items-start gap-2 text-xs text-gray-700">
+                                    <FiCheckCircle className="w-3.5 h-3.5 text-violet-400 flex-shrink-0 mt-0.5" />{kp}
+                                  </motion.li>
+                                ))}
+                              </motion.ul>
+                            </motion.div>
+                          )}
+
+                          {/* Action items */}
+                          {summary.actionItems?.length > 0 && (
+                            <motion.div variants={fadeUp}>
+                              <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2">Action Items</p>
+                              <div className="space-y-2">
+                                {summary.actionItems.map((item, i) => (
+                                  <motion.div key={i} variants={fadeUp}
+                                    className="flex items-start gap-2.5 bg-white/70 rounded-xl px-3 py-2.5 border border-indigo-100"
+                                  >
+                                    <div className="w-5 h-5 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <span className="text-[9px] font-black text-indigo-600">{i+1}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs text-gray-800 leading-snug">{item.task}</p>
+                                      <p className="text-[10px] text-indigo-500 font-semibold mt-0.5">→ {item.assignedTo}</p>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+
+                          {/* Resources */}
+                          {summary.resources?.length > 0 && (
+                            <motion.div variants={fadeUp}>
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <FiBookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Resources</p>
+                              </div>
+                              <div className="space-y-1.5">
+                                {summary.resources.map((r, i) => (
+                                  <motion.a key={i} variants={fadeUp}
+                                    href={r.url} target="_blank" rel="noopener noreferrer"
+                                    whileHover={{ x: 3 }}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-emerald-700 group transition-all"
+                                    style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.15)' }}
+                                  >
+                                    <span>{RESOURCE_ICONS[r.type] ?? '🔗'}</span>
+                                    <span className="flex-1 truncate">{r.title}</span>
+                                    <FiExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                                  </motion.a>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+
+                          {/* Next steps */}
+                          {summary.nextSteps && (
+                            <motion.div variants={fadeUp}
+                              className="flex items-start gap-2.5 rounded-xl px-3 py-3"
+                              style={{ background: 'linear-gradient(135deg,rgba(251,191,36,0.1),rgba(245,158,11,0.07))', border: '1px solid rgba(251,191,36,0.3)' }}
+                            >
+                              <span className="text-base flex-shrink-0">👉</span>
+                              <div>
+                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-0.5">Next Focus</p>
+                                <p className="text-xs text-gray-700 leading-relaxed">{summary.nextSteps}</p>
+                              </div>
+                            </motion.div>
+                          )}
+
+                          <div className="h-2" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3"

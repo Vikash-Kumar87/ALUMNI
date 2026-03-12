@@ -438,6 +438,56 @@ Return ONLY valid JSON with NO other text:
   }
 });
 
+// POST /ai/session-summary - AI Mentor Session Summarizer
+router.post('/session-summary', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { messages, mentorName, studentName } = req.body;
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      res.status(400).json({ error: 'Messages array is required' });
+      return;
+    }
+
+    const transcript = messages
+      .map((m: { senderName: string; text: string }) => `${m.senderName}: ${m.text}`)
+      .join('\n');
+
+    const prompt = `You are an expert mentor session analyst. Analyze this mentorship conversation between ${mentorName} (mentor/alumni) and ${studentName} (student) and create a professional session summary.
+
+Conversation Transcript:
+${transcript}
+
+Return ONLY valid JSON with NO other text:
+{
+  "title": "A concise session title (8 words max)",
+  "overview": "A 2-3 sentence professional summary of what was discussed",
+  "keyPoints": ["Key insight or topic 1", "Key insight or topic 2", "Key insight or topic 3"],
+  "actionItems": [
+    { "task": "Specific task to complete", "assignedTo": "${studentName}" },
+    { "task": "Follow-up action", "assignedTo": "${mentorName}" }
+  ],
+  "resources": [
+    { "title": "Relevant resource title", "url": "https://...", "type": "docs" | "article" | "video" | "course" }
+  ],
+  "mood": "productive" | "exploratory" | "problem-solving" | "motivational",
+  "nextSteps": "One sentence about what the student should focus on next"
+}`;
+
+    const responseText = (await generateText(prompt)).trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const summary = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+    res.status(200).json({ summary });
+  } catch (error) {
+    console.error('Session summary error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait a moment and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable. Please try again.' });
+  }
+});
+
 // POST /ai/cover-letter - AI Cover Letter Generator
 router.post('/cover-letter', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

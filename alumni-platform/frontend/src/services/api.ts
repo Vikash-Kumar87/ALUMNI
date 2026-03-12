@@ -162,6 +162,8 @@ export const aiAPI = {
     apiService.post('/ai/skill-gap', { currentSkills, targetRole }),
   discussionAnswer: (question: string, tags: string[]) =>
     apiService.post('/ai/discussion-answer', { question, tags }),
+  summarizeSession: (messages: { senderName: string; text: string }[], mentorName: string, studentName: string) =>
+    apiService.post('/ai/session-summary', { messages, mentorName, studentName }),
 };
 
 export const notificationsAPI = {
