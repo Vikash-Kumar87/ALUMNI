@@ -152,20 +152,6 @@ const CoverLetterGenerator: React.FC = () => {
       margin-top: 4px;
       font-weight: 400;
     }
-    .meta-row {
-      display: flex;
-      gap: 24px;
-      margin-top: 18px;
-    }
-    .meta-chip {
-      background: rgba(255,255,255,0.18);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 5px 12px;
-      border-radius: 100px;
-      letter-spacing: 0.3px;
-    }
     /* Subject line */
     .subject-card {
       margin: 32px 48px 0;
@@ -234,11 +220,6 @@ const CoverLetterGenerator: React.FC = () => {
     <div class="header">
       <div class="author-name">${name || 'Applicant'}</div>
       <div class="author-role">Applying for &nbsp;·&nbsp; ${role} at ${company}</div>
-      <div class="meta-row">
-        <span class="meta-chip">📅 ${today}</span>
-        <span class="meta-chip">🎩 ${result.tone.charAt(0).toUpperCase() + result.tone.slice(1)} tone</span>
-        <span class="meta-chip">📝 ${result.wordCount} words</span>
-      </div>
     </div>
 
     <div class="subject-card">
@@ -249,7 +230,7 @@ const CoverLetterGenerator: React.FC = () => {
     <div class="body">${paragraphs}</div>
 
     <div class="footer">
-      <span class="footer-left">Generated with AlumniConnect AI &nbsp;·&nbsp; ${today}</span>
+      <span class="footer-left">${today}</span>
       <span class="footer-badge">✦ AlumniConnect</span>
     </div>
   </div>
