@@ -634,4 +634,104 @@ Only return valid JSON, no additional text.`;
   }
 });
 
+// POST /ai/weekly-report - Personalized Weekly Career Report
+router.post('/weekly-report', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, skills, goals, interests, branch, targetRole } = req.body;
+
+    const now = new Date();
+    const day = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const weekLabel = `${fmt(monday)}–${fmt(sunday)}, ${now.getFullYear()}`;
+
+    const prompt = `You are an expert AI career coach. Generate a personalized weekly career report for a student.
+
+Student Profile:
+- Name: ${name || 'Student'}
+- Skills: ${(skills || []).join(', ') || 'Not specified'}
+- Goals: ${goals || 'Not specified'}
+- Interests: ${(interests || []).join(', ') || 'Not specified'}
+- Branch/Major: ${branch || 'Computer Science'}
+- Target Role: ${targetRole || goals || 'Software Developer'}
+- Week: ${weekLabel}
+
+Generate a rich, actionable weekly career report. Make it feel personal and motivating.
+
+Return ONLY valid JSON with NO other text:
+{
+  "greeting": "Hey ${name || 'there'}, here's your career briefing for this week! 🚀",
+  "weekLabel": "${weekLabel}",
+  "energyLevel": "leveling_up" | "momentum" | "focused" | "catching_up",
+  "learn": [
+    {
+      "topic": "Specific skill/topic to learn this week",
+      "why": "Why this is relevant to their profile and goals (1-2 sentences)",
+      "estimatedHours": number (2-8),
+      "resources": [
+        { "title": "Resource title", "url": "https://...", "type": "video" | "article" | "course" | "docs" }
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "title": "Job title",
+      "company": "Company name (realistic)",
+      "matchReason": "Why this matches their profile (1 sentence)",
+      "urgency": "hot" | "normal",
+      "skills": ["skill1", "skill2", "skill3"]
+    }
+  ],
+  "mentors": [
+    {
+      "name": "Realistic mentor name",
+      "role": "Senior title",
+      "company": "Tech company",
+      "matchReason": "Why this mentor suits them (1 sentence)",
+      "skills": ["skill1", "skill2", "skill3"]
+    }
+  ],
+  "skillGaps": [
+    {
+      "skill": "Skill name",
+      "priority": "high" | "medium" | "low",
+      "gap": "Why they need this skill and what's missing (1 sentence)"
+    }
+  ],
+  "trending": ["trend1", "trend2", "trend3", "trend4", "trend5"],
+  "weeklyGoal": "One specific, achievable goal for this week (1 sentence)",
+  "quote": "An inspiring quote relevant to their career journey",
+  "stats": {
+    "profileStrength": number (60-95),
+    "weeklyOpportunities": number (8-25),
+    "mentorMatches": number (2-5)
+  }
+}
+
+Rules:
+- learn: exactly 2-3 items, each with 2 resources with real URLs
+- jobs: exactly 3 items, realistic titles matching their skills/goals
+- mentors: exactly 2-3 items with realistic names
+- skillGaps: exactly 3 items relevant to their target role
+- trending: exactly 5 current trending technologies in their field
+- Make everything highly specific to their actual skills and goals`;
+
+    const responseText = (await generateText(prompt, 3000)).trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const report = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+    res.status(200).json({ report });
+  } catch (error) {
+    console.error('Weekly report error:', error);
+    if (isQuotaError(error)) {
+      res.status(429).json({ error: 'Groq API rate limit reached. Please wait a moment and try again.' });
+      return;
+    }
+    res.status(500).json({ error: 'AI service temporarily unavailable. Please try again.' });
+  }
+});
+
 export default router;

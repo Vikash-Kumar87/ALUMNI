@@ -110,6 +110,46 @@ export interface MentorshipRequest {
   createdAt: string;
 }
 
+// ===== Weekly Career Report Types =====
+export interface WeeklyReportLearnItem {
+  topic: string;
+  why: string;
+  estimatedHours: number;
+  resources: { title: string; url: string; type: 'video' | 'article' | 'course' | 'docs' }[];
+}
+export interface WeeklyReportJob {
+  title: string;
+  company: string;
+  matchReason: string;
+  urgency: 'hot' | 'normal';
+  skills: string[];
+}
+export interface WeeklyReportMentor {
+  name: string;
+  role: string;
+  company: string;
+  matchReason: string;
+  skills: string[];
+}
+export interface WeeklyReportSkillGap {
+  skill: string;
+  priority: 'high' | 'medium' | 'low';
+  gap: string;
+}
+export interface WeeklyReport {
+  greeting: string;
+  weekLabel: string;
+  energyLevel: 'leveling_up' | 'momentum' | 'focused' | 'catching_up';
+  learn: WeeklyReportLearnItem[];
+  jobs: WeeklyReportJob[];
+  mentors: WeeklyReportMentor[];
+  skillGaps: WeeklyReportSkillGap[];
+  trending: string[];
+  weeklyGoal: string;
+  quote: string;
+  stats: { profileStrength: number; weeklyOpportunities: number; mentorMatches: number };
+}
+
 // ===== AI Types =====
 export interface InterviewQuestion {
   id: number;

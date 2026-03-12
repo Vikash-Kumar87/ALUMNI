@@ -164,6 +164,14 @@ export const aiAPI = {
     apiService.post('/ai/discussion-answer', { question, tags }),
   summarizeSession: (messages: { senderName: string; text: string }[], mentorName: string, studentName: string) =>
     apiService.post('/ai/session-summary', { messages, mentorName, studentName }),
+  weeklyReport: (
+    name: string,
+    skills: string[],
+    goals: string,
+    interests: string[],
+    branch: string,
+    targetRole: string,
+  ) => apiService.post('/ai/weekly-report', { name, skills, goals, interests, branch, targetRole }),
 };
 
 export const notificationsAPI = {
