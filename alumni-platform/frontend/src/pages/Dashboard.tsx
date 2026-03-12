@@ -11,7 +11,7 @@ import { PlatformStats, Job, Discussion, MentorshipRequest } from '../types';
 import AlumniDashboard from './AlumniDashboard';
 import {
   FiUsers, FiBriefcase, FiMessageSquare, FiTrendingUp, FiArrowRight,
-  FiCpu, FiMessageCircle, FiZap, FiStar, FiActivity, FiAward
+  FiCpu, FiMessageCircle, FiZap, FiStar, FiActivity, FiAward, FiFileText
 } from 'react-icons/fi';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title);
@@ -140,6 +140,7 @@ const Dashboard: React.FC = () => {
     { to: '/interview', icon: FiCpu, label: 'Interview Prep', desc: 'AI mock interviews', grad: 'linear-gradient(135deg,#8b5cf6,#a855f7)', glow: 'rgba(139,92,246,0.3)', emoji: '🎯' },
     { to: '/mentors', icon: FiUsers, label: 'Find Mentors', desc: 'AI-matched mentors', grad: 'linear-gradient(135deg,#10b981,#059669)', glow: 'rgba(16,185,129,0.3)', emoji: '🧭' },
     { to: '/roadmap', icon: FiActivity, label: 'Skill Roadmap', desc: 'Personalised path', grad: 'linear-gradient(135deg,#f59e0b,#ea580c)', glow: 'rgba(245,158,11,0.3)', emoji: '🗺️' },
+    { to: '/resume', icon: FiFileText, label: 'Resume Analyzer', desc: 'AI resume score & tips', grad: 'linear-gradient(135deg,#6366f1,#7c3aed)', glow: 'rgba(99,102,241,0.3)', emoji: '📄' },
   ];
 
   return (

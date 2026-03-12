@@ -7,7 +7,7 @@ import {
   FiHome, FiUsers, FiMessageSquare, FiBriefcase, FiCpu,
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
   FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
-  FiZap, FiMail
+  FiZap, FiMail, FiFileText
 } from 'react-icons/fi';
 
 /* ── Notification type config ── */
@@ -121,6 +121,7 @@ const Navbar: React.FC = () => {
         { to: '/roadmap', label: 'Roadmap', icon: FiMap },
         { to: '/interview', label: 'Interview', icon: FiCpu },
         { to: '/chatbot', label: 'AI Chat', icon: FiMessageCircle },
+        { to: '/resume', label: 'Resume AI', icon: FiFileText },
         { to: '/chat', label: 'Messages', icon: FiMessageSquare },
       ];
 
