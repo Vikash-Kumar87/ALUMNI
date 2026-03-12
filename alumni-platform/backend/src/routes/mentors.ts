@@ -192,7 +192,45 @@ router.get('/my-requests', verifyToken, async (req: AuthRequest, res: Response):
       snapshot = await db.collection('mentorship').where('alumniId', '==', uid).get();
     }
 
-    const requests = snapshot.docs.map(doc => doc.data());
+    const requests = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const mentorshipData = doc.data();
+        
+        // Fetch student details for alumni, or alumni details for students
+        let enrichedRequest = { ...mentorshipData };
+        
+        if (userData?.role === 'alumni' && mentorshipData.studentId) {
+          // Alumni viewing requests - add student info
+          try {
+            const studentDoc = await db.collection('users').doc(mentorshipData.studentId).get();
+            const studentData = studentDoc.data();
+            enrichedRequest.studentName = studentData?.name || 'Unknown Student';
+            enrichedRequest.studentEmail = studentData?.email || '';
+          } catch (err) {
+            console.error('Failed to fetch student data:', err);
+            enrichedRequest.studentName = 'Unknown Student';
+            enrichedRequest.studentEmail = '';
+          }
+        } else if (userData?.role === 'student' && mentorshipData.alumniId) {
+          // Student viewing requests - add alumni info
+          try {
+            const alumniDoc = await db.collection('users').doc(mentorshipData.alumniId).get();
+            const alumniData = alumniDoc.data();
+            enrichedRequest.alumniName = alumniData?.name || 'Unknown Alumni';
+            enrichedRequest.alumniEmail = alumniData?.email || '';
+            enrichedRequest.alumniCompany = alumniData?.company || '';
+            enrichedRequest.alumniJobRole = alumniData?.jobRole || '';
+          } catch (err) {
+            console.error('Failed to fetch alumni data:', err);
+            enrichedRequest.alumniName = 'Unknown Alumni';
+            enrichedRequest.alumniEmail = '';
+          }
+        }
+        
+        return enrichedRequest;
+      })
+    );
+
     res.status(200).json({ requests });
   } catch (error) {
     console.error('Get mentorship requests error:', error);
