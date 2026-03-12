@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import {
@@ -24,6 +24,14 @@ const ProfilePage: React.FC = () => {
     mentorship: userProfile?.emailNotifications?.mentorship !== false,
   }));
   const [emailSaving, setEmailSaving] = useState<'messages' | 'mentorship' | null>(null);
+
+  // Keep emailPrefs in sync whenever userProfile refreshes from Firestore
+  useEffect(() => {
+    setEmailPrefs({
+      messages: userProfile?.emailNotifications?.messages !== false,
+      mentorship: userProfile?.emailNotifications?.mentorship !== false,
+    });
+  }, [userProfile?.emailNotifications?.messages, userProfile?.emailNotifications?.mentorship]);
 
   const [form, setForm] = useState({
     name: userProfile?.name || '',

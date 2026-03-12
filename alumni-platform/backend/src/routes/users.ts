@@ -125,7 +125,7 @@ router.put('/:uid', verifyToken, async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    const allowedFields = ['name', 'skills', 'branch', 'year', 'interests', 'goals', 'company', 'jobRole', 'experience', 'linkedin', 'bio', 'avatar'];
+    const allowedFields = ['name', 'skills', 'branch', 'year', 'interests', 'goals', 'company', 'jobRole', 'experience', 'linkedin', 'bio', 'avatar', 'emailNotifications'];
     const updateData: Record<string, unknown> = { updatedAt: new Date().toISOString() };
 
     for (const field of allowedFields) {

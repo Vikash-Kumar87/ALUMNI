@@ -55,19 +55,21 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response): Promise<v
       '/chat',
     ).catch(() => { /* non-critical */ });
 
-    // Send email notification if recipient has opted in
-    try {
-      const receiverDoc = await db.collection('users').doc(receiverId).get();
-      const receiverData = receiverDoc.data() as { email?: string; name?: string; emailNotifications?: { messages?: boolean } } | undefined;
-      if (receiverData?.email && receiverData?.emailNotifications?.messages !== false) {
-        await sendNewMessageEmail(
-          receiverData.email,
-          receiverData.name || 'there',
-          senderData?.name || 'Someone',
-          message.length > 120 ? message.slice(0, 120) + '…' : message,
-        );
-      }
-    } catch { /* email failure should never break the chat */ }
+    // Send email notification if recipient has opted in (fire-and-forget — never block the response)
+    (async () => {
+      try {
+        const receiverDoc = await db.collection('users').doc(receiverId).get();
+        const receiverData = receiverDoc.data() as { email?: string; name?: string; emailNotifications?: { messages?: boolean } } | undefined;
+        if (receiverData?.email && receiverData?.emailNotifications?.messages !== false) {
+          await sendNewMessageEmail(
+            receiverData.email,
+            receiverData.name || 'there',
+            senderData?.name || 'Someone',
+            message.length > 120 ? message.slice(0, 120) + '…' : message,
+          );
+        }
+      } catch { /* email failure must never affect chat */ }
+    })();
 
     res.status(201).json({ message: 'Message sent', data: { ...messageData, id: newMsgRef.id } });
   } catch (error) {
