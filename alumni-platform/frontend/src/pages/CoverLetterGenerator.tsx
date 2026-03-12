@@ -216,10 +216,21 @@ const CoverLetterGenerator: React.FC = () => {
 </body>
 </html>`;
 
-    const popup = window.open('', '_blank', 'width=900,height=700');
-    if (!popup) { toast.error('Allow pop-ups to save the PDF'); return; }
-    popup.document.write(html);
-    popup.document.close();
+    // Use a hidden iframe so it works on Android (no popup blocker issues)
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow!.focus();
+        iframe.contentWindow!.print();
+      } catch {}
+      setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 3000);
+    };
     toast.success('Print dialog opened — choose "Save as PDF" 📄');
   };
 
