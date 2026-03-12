@@ -315,74 +315,79 @@ const VideoCallPage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* ── ACTIVE CALL SCREEN ───────────────────────────────── */}
-          {callStarted && (
-            <motion.div
-              key="call"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
-              className={`w-full ${fullscreen ? 'fixed inset-0 z-50' : 'max-w-5xl rounded-3xl overflow-hidden'}`}
-              style={!fullscreen ? { marginTop: '8px', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)' } : {}}
-            >
-              {/* Call toolbar */}
-              {!fullscreen && (
-                <div className="flex items-center justify-between px-5 py-3"
-                  style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                    <span className="text-xs font-bold text-emerald-400">Live</span>
-                    <span className="text-xs text-white/40 font-mono ml-1">{formatTime(timer)}</span>
-                  </div>
-                  <span className="text-sm font-semibold text-white/70">{peerName}</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setFullscreen(true)}
-                      className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all"
-                    >
-                      <FiMaximize2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={endCall}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all"
-                      style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', boxShadow: '0 4px 12px rgba(244,63,94,0.4)' }}
-                    >
-                      <FiPhone className="w-3.5 h-3.5 rotate-[135deg]" />
-                      End
-                    </button>
-                  </div>
-                </div>
-              )}
+        </AnimatePresence>
 
-              {/* Fullscreen exit */}
-              {fullscreen && (
-                <div className="absolute top-4 right-4 z-50 flex gap-2">
-                  <button onClick={() => setFullscreen(false)}
-                    className="p-2 rounded-xl bg-black/40 text-white/70 hover:text-white hover:bg-black/60 transition-all backdrop-blur-sm">
-                    <FiMinimize2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={endCall}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)' }}>
-                    <FiPhone className="w-3.5 h-3.5 rotate-[135deg]" /> End
-                  </button>
-                </div>
-              )}
-
-              {/* Jitsi container */}
-              <div
-                ref={jitsiContainerRef}
-                style={{
-                  width: '100%',
-                  height: fullscreen ? '100vh' : 'min(70vh, 620px)',
-                  background: '#0f0b2e',
-                }}
-              />
-            </motion.div>
+        {/* ── ALWAYS-MOUNTED CALL AREA ─────────────────────────────
+            jitsiContainerRef must be in the DOM BEFORE initJitsi() runs.
+            We use display:flex/none instead of conditional rendering so
+            the ref is non-null from the very first render.              */}
+        <div
+          className={`w-full ${fullscreen ? 'fixed inset-0 z-50' : 'max-w-5xl rounded-3xl overflow-hidden'}`}
+          style={{
+            display: callStarted ? 'flex' : 'none',
+            flexDirection: 'column',
+            ...(callStarted && !fullscreen
+              ? { marginTop: '8px', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)' }
+              : {}),
+          }}
+        >
+          {/* Call toolbar */}
+          {!fullscreen && (
+            <div className="flex items-center justify-between px-5 py-3"
+              style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-xs font-bold text-emerald-400">Live</span>
+                <span className="text-xs text-white/40 font-mono ml-1">{formatTime(timer)}</span>
+              </div>
+              <span className="text-sm font-semibold text-white/70">{peerName}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setFullscreen(true)}
+                  className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <FiMaximize2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={endCall}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all"
+                  style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', boxShadow: '0 4px 12px rgba(244,63,94,0.4)' }}
+                >
+                  <FiPhone className="w-3.5 h-3.5 rotate-[135deg]" />
+                  End
+                </button>
+              </div>
+            </div>
           )}
 
-          {/* Loading overlay while Jitsi initialises */}
+          {/* Fullscreen exit */}
+          {fullscreen && (
+            <div className="absolute top-4 right-4 z-50 flex gap-2">
+              <button onClick={() => setFullscreen(false)}
+                className="p-2 rounded-xl bg-black/40 text-white/70 hover:text-white hover:bg-black/60 transition-all backdrop-blur-sm">
+                <FiMinimize2 className="w-4 h-4" />
+              </button>
+              <button onClick={endCall}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white"
+                style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)' }}>
+                <FiPhone className="w-3.5 h-3.5 rotate-[135deg]" /> End
+              </button>
+            </div>
+          )}
+
+          {/* Jitsi container — always in DOM so jitsiContainerRef.current is never null */}
+          <div
+            ref={jitsiContainerRef}
+            style={{
+              width: '100%',
+              height: fullscreen ? '100vh' : 'min(70vh, 620px)',
+              background: '#0f0b2e',
+            }}
+          />
+        </div>
+
+        {/* Loading overlay while Jitsi initialises */}
+        <AnimatePresence>
           {loading && (
             <motion.div
               key="loading"
@@ -404,7 +409,6 @@ const VideoCallPage: React.FC = () => {
               <p className="text-white/40 text-sm mt-1">Setting up your secure video call</p>
             </motion.div>
           )}
-
         </AnimatePresence>
 
         {/* Pre-call: bottom note */}
