@@ -667,7 +667,7 @@ const MentorPage: React.FC = () => {
                     <button onClick={closeBookingModal} className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
                       <FiX className="w-4 h-4" />
                     </button>
-                    <p className="text-violet-200 text-xs uppercase font-semibold tracking-wider mb-1">AlumniConnect · Demo Payment</p>
+                    <p className="text-violet-200 text-xs uppercase font-semibold tracking-wider mb-1">CareerSaathi · Demo Payment</p>
                     <h2 className="text-xl font-bold">Book Mentorship Session</h2>
                   </div>
                   <div className="p-6">

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff, FiBriefcase, FiArrowRight, FiArrowLeft, FiCheck, FiLinkedin } from 'react-icons/fi';
@@ -44,7 +44,7 @@ const SignupPage: React.FC = () => {
         // User already has a complete profile
         navigate('/dashboard');
       } else {
-        // New user — basic profile created, now collect extra details
+        // New user � basic profile created, now collect extra details
         setIsGoogleFlow(true);
         setStep('profile');
         setLoading(false);
@@ -85,7 +85,7 @@ const SignupPage: React.FC = () => {
           : { company, jobRole, experience: Number(experience), linkedin, skills: skills.split(',').map(s => s.trim()).filter(Boolean) };
       await apiService.post('/auth/signup', { uid: currentUser.uid, name: currentUser.displayName || name, email: currentUser.email, role, ...extraData }, { headers: { Authorization: `Bearer ${token}` } });
       navigate('/dashboard');
-      toast.success('Profile created! Welcome 🎉');
+      toast.success('Profile created! Welcome ??');
     } catch (err) { toast.error((err as Error).message || 'Profile creation failed'); }
     finally { setLoading(false); }
   };
@@ -138,9 +138,9 @@ const SignupPage: React.FC = () => {
           <Link to="/" className="inline-flex items-center gap-2.5 mb-4">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
               style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
-              <span className="text-2xl">🎓</span>
+              <span className="text-2xl">??</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">AlumniConnect</span>
+            <span className="text-xl font-bold text-gray-900">CareerSaathi</span>
           </Link>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your account</h1>
           <p className="text-gray-500 mt-1.5">Already have one?{' '}
@@ -184,17 +184,17 @@ const SignupPage: React.FC = () => {
         <div className="sup-fade rounded-3xl p-8 shadow-2xl border border-white/70"
           style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(20px)', animationDelay: '140ms' }}>
 
-          {/* ── Step: Role ── */}
+          {/* -- Step: Role -- */}
           {step === 'role' && (
             <div className="sup-scale" style={{ animationDelay: '0ms' }}>
               <div className="mb-5">
                 <h2 className="text-xl font-bold text-gray-900">I am a...</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Choose how you want to use AlumniConnect</p>
+                <p className="text-sm text-gray-500 mt-0.5">Choose how you want to use CareerSaathi</p>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {(['student', 'alumni'] as Role[]).map(r => (
                   <button key={r} onClick={() => setRole(r)} className={`sup-role-card ${role === r ? 'active sup-pop' : ''}`}>
-                    <div className="text-4xl mb-3">{r === 'student' ? '🎓' : '💼'}</div>
+                    <div className="text-4xl mb-3">{r === 'student' ? '??' : '??'}</div>
                     <p className="font-bold text-gray-900 capitalize text-base mb-1">{r}</p>
                     <p className="text-xs text-gray-500 leading-relaxed">
                       {r === 'student' ? 'Looking for mentorship & guidance' : 'Share experience & mentor students'}
@@ -232,7 +232,7 @@ const SignupPage: React.FC = () => {
             </div>
           )}
 
-          {/* ── Step: Account ── */}
+          {/* -- Step: Account -- */}
           {step === 'account' && (
             <form onSubmit={(e) => { e.preventDefault(); setStep('profile'); }} className="sup-scale space-y-4">
               <div className="mb-1">
@@ -276,12 +276,12 @@ const SignupPage: React.FC = () => {
             </form>
           )}
 
-          {/* ── Step: Profile ── */}
+          {/* -- Step: Profile -- */}
           {step === 'profile' && (
             <form onSubmit={isGoogleFlow ? handleGoogleProfileSubmit : handleFinalSubmit} className="sup-scale space-y-4">
               <div className="mb-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-2xl">{role === 'student' ? '🎓' : '💼'}</span>
+                  <span className="text-2xl">{role === 'student' ? '??' : '??'}</span>
                   <h2 className="text-xl font-bold text-gray-900">{role === 'student' ? 'Student' : 'Alumni'} profile</h2>
                 </div>
                 <p className="text-sm text-gray-500">Help us personalise your experience</p>
@@ -367,7 +367,7 @@ const SignupPage: React.FC = () => {
                       Creating account...
                     </>
                   ) : (
-                    <>🎉 Create Account</>
+                    <>?? Create Account</>
                   )}
                 </button>
               </div>

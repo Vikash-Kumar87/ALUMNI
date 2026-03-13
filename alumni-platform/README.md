@@ -1,4 +1,4 @@
-# AlumniConnect — Intelligent Platform to Interconnect Alumni & Students
+# CareerSaathi — Intelligent Platform to Interconnect Alumni & Students
 
 A full-stack web application that bridges the gap between alumni and students through AI-powered mentorship matching, career guidance, interview practice, job referrals, and community learning.
 
@@ -37,7 +37,7 @@ A full-stack web application that bridges the gap between alumni and students th
 ## Project Structure
 
 ```
-alumni-platform/
+careersaathi-platform/
 ├── backend/                  # Node.js + Express API
 │   ├── src/
 │   │   ├── config/firebase.ts

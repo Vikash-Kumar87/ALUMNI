@@ -1,5 +1,5 @@
 {
-  "name": "alumni-platform-backend",
+  "name": "careersaathi-platform-backend",
   "version": "1.0.0",
   "description": "Intelligent Platform to Interconnect Alumni and Students - Backend",
   "main": "dist/index.js",

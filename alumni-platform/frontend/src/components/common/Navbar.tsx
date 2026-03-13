@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsAPI } from '../../services/api';
@@ -11,7 +11,7 @@ import {
   FiVideo, FiClock, FiTrendingUp, FiMoreHorizontal
 } from 'react-icons/fi';
 
-/* ── Notification type config ── */
+/* -- Notification type config -- */
 const NOTIF_CONFIG: Record<NotificationType, { icon: React.ElementType; grad: string; bg: string; label: string }> = {
   mentorship_request:  { icon: FiUserPlus,    grad: 'linear-gradient(135deg,#6366f1,#7c3aed)', bg: 'rgba(238,242,255,0.9)', label: 'Mentorship Request' },
   mentorship_accepted: { icon: FiCheckCircle, grad: 'linear-gradient(135deg,#10b981,#059669)', bg: 'rgba(236,253,245,0.9)', label: 'Request Accepted' },
@@ -180,7 +180,7 @@ const Navbar: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow transition-all duration-300 group-hover:scale-110 group-hover:shadow-glow-md animate-breathe">
                 <FiAward className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold hidden sm:block tracking-tight text-white">AlumniConnect</span>
+              <span className="font-bold hidden sm:block tracking-tight text-white">CareerSaathi</span>
             </Link>
 
             {/* Desktop nav */}
@@ -245,7 +245,7 @@ const Navbar: React.FC = () => {
                   </div>
                 )}
 
-                {/* AI Tools dropdown — students only */}
+                {/* AI Tools dropdown � students only */}
                 {userProfile?.role === 'student' && (
                   <div className="relative" ref={toolsRef}>
                     <button
@@ -476,7 +476,7 @@ const Navbar: React.FC = () => {
                                   style={userProfile?.role === 'alumni'
                                     ? { background: 'rgba(236,253,245,1)', color: '#059669' }
                                     : { background: 'rgba(238,242,255,1)', color: '#4f46e5' }}>
-                                  {userProfile?.role === 'alumni' ? '💼 Alumni' : '🎓 Student'}
+                                  {userProfile?.role === 'alumni' ? '?? Alumni' : '?? Student'}
                                 </span>
                               </div>
                             </div>
@@ -535,7 +535,10 @@ const Navbar: React.FC = () => {
 
         {/* Mobile nav */}
         {mobileOpen && currentUser && (
-          <div className="md:hidden border-t border-white/10 bg-indigo-950/95 backdrop-blur-xl animate-fade-in-down px-3 py-2 space-y-0.5">
+          <div
+            className="md:hidden border-t border-white/10 bg-indigo-950/95 backdrop-blur-xl animate-fade-in-down px-3 py-2 space-y-0.5 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+          >
             {navLinks.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}

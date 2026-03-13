@@ -15,7 +15,7 @@ const Footer: React.FC = () => (
             <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-violet-600 rounded-xl flex items-center justify-center shadow-glow">
               <FiAward className="w-4 h-4 text-white" />
             </div>
-            <span className="text-white font-bold text-lg tracking-tight">AlumniConnect</span>
+            <span className="text-white font-bold text-lg tracking-tight">CareerSaathi</span>
           </div>
           <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
             Intelligent platform connecting students with alumni for mentorship, career growth, and technical education.
@@ -64,7 +64,7 @@ const Footer: React.FC = () => (
         </div>
       </div>
       <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-        <p className="text-xs text-gray-500">© 2026 AlumniConnect. All rights reserved.</p>
+        <p className="text-xs text-gray-500">© 2026 CareerSaathi. All rights reserved.</p>
         <p className="text-xs text-gray-500">Built with React, Node.js, Firebase &amp; Groq AI</p>
       </div>
     </div>

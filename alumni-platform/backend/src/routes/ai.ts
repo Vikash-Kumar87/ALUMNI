@@ -847,7 +847,7 @@ router.post('/icebreaker', verifyToken, async (req: AuthRequest, res: Response):
       mentorName, mentorSkills, mentorCompany, mentorRole, mentorBio,
     } = req.body;
 
-    const prompt = `You are an expert networking coach. Generate 3 distinct, personalized opening messages for a student reaching out to an alumni mentor on a platform called AlumniConnect.
+    const prompt = `You are an expert networking coach. Generate 3 distinct, personalized opening messages for a student reaching out to an alumni mentor on a platform called CareerSaathi.
 
 Student Profile:
 - Name: ${studentName || 'Student'}
@@ -908,7 +908,7 @@ router.post('/success-story', verifyToken, async (req: AuthRequest, res: Respons
       storytelling: 'first-person narrative arc with emotional depth — like a personal essay',
     };
 
-    const prompt = `You are an expert biography writer. Write a compelling success story / profile bio for a mentor on an alumni platform called AlumniConnect.
+    const prompt = `You are an expert biography writer. Write a compelling success story / profile bio for a mentor on an alumni platform called CareerSaathi.
 
 Alumni Details:
 - Name: ${name || 'Alumni'}

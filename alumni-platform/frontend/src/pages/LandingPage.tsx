@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -9,7 +9,7 @@ import {
 } from 'react-icons/fi';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 
-/* ─── BeforeInstallPromptEvent type ─── */
+/* --- BeforeInstallPromptEvent type --- */
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -108,7 +108,7 @@ const HOW_IT_WORKS = [
 
 const TESTIMONIALS = [
   {
-    text: "Found my dream internship through AlumniConnect! An alumnus referred me after a single chat. The AI interview prep was a game-changer.",
+    text: "Found my dream internship through CareerSaathi! An alumnus referred me after a single chat. The AI interview prep was a game-changer.",
     name: 'Riya Sharma', role: 'Student, CSE Final Year', avatar: 'RS', gradient: 'from-indigo-500 to-purple-600', stars: 5,
   },
   {
@@ -121,7 +121,7 @@ const TESTIMONIALS = [
   },
 ];
 
-/* ─── Scroll-reveal wrapper using framer-motion + useInView ─── */
+/* --- Scroll-reveal wrapper using framer-motion + useInView --- */
 const Reveal: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
   children, delay = 0, className = '',
 }) => {
@@ -171,7 +171,7 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden font-sans">
 
-      {/* ══════════ NAVBAR ══════════ */}
+      {/* ---------- NAVBAR ---------- */}
       <nav className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'bg-white/90 backdrop-blur-xl shadow-sm border-b border-gray-100' : 'bg-transparent'}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo */}
@@ -179,7 +179,7 @@ const LandingPage: React.FC = () => {
             <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
               <FiAward className="w-4 h-4 text-white" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-gray-900 hidden min-[380px]:block">AlumniConnect</span>
+            <span className="font-extrabold text-lg tracking-tight text-gray-900 hidden min-[380px]:block">CareerSaathi</span>
           </div>
 
           {/* Desktop links */}
@@ -223,7 +223,7 @@ const LandingPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* ══════════ MOBILE DRAWER ══════════ */}
+      {/* ---------- MOBILE DRAWER ---------- */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
@@ -244,7 +244,7 @@ const LandingPage: React.FC = () => {
                   <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
                     <FiAward className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <span className="font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">AlumniConnect</span>
+                  <span className="font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">CareerSaathi</span>
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-all">
                   <FiX className="w-5 h-5" />
@@ -287,7 +287,7 @@ const LandingPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ══════════ HERO ══════════ */}
+      {/* ---------- HERO ---------- */}
       <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50 pt-16 pb-28 lg:pt-24 lg:pb-36">
         {/* Blobs */}
         <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-indigo-200/40 to-purple-200/30 blur-3xl pointer-events-none" />
@@ -320,7 +320,7 @@ const LandingPage: React.FC = () => {
           <motion.p
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
             className="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            An intelligent platform for mentorship, AI career guidance, interview practice, job referrals, and community learning — built exclusively for your college network.
+            An intelligent platform for mentorship, AI career guidance, interview practice, job referrals, and community learning � built exclusively for your college network.
           </motion.p>
 
           <motion.div
@@ -359,7 +359,7 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ══════════ STATS ══════════ */}
+      {/* ---------- STATS ---------- */}
       <section className="py-16 bg-white border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
           {STATS.map((s, i) => (
@@ -376,7 +376,7 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ══════════ FEATURES ══════════ */}
+      {/* ---------- FEATURES ---------- */}
       <section id="features" className="py-24 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <Reveal className="text-center mb-16">
@@ -408,7 +408,7 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ══════════ HOW IT WORKS ══════════ */}
+      {/* ---------- HOW IT WORKS ---------- */}
       <section id="how-it-works" className="py-24 bg-indigo-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <Reveal className="text-center mb-16">
@@ -441,7 +441,7 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ══════════ TESTIMONIALS ══════════ */}
+      {/* ---------- TESTIMONIALS ---------- */}
       <section id="testimonials" className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <Reveal className="text-center mb-16">
@@ -483,7 +483,7 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ══════════ CTA ══════════ */}
+      {/* ---------- CTA ---------- */}
       <section className="py-24 relative overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500">
         <div className="absolute inset-0 pointer-events-none opacity-[0.12]"
           style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
@@ -495,7 +495,7 @@ const LandingPage: React.FC = () => {
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4 tracking-tight">Ready to Transform Your Career?</h2>
           <p className="text-indigo-100 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-            Join thousands of students and alumni already using AlumniConnect to build meaningful connections and accelerate their careers.
+            Join thousands of students and alumni already using CareerSaathi to build meaningful connections and accelerate their careers.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/signup"
@@ -510,7 +510,7 @@ const LandingPage: React.FC = () => {
         </Reveal>
       </section>
 
-      {/* ══════════ FOOTER ══════════ */}
+      {/* ---------- FOOTER ---------- */}
       <footer className="bg-gray-950 text-gray-500 py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
@@ -519,7 +519,7 @@ const LandingPage: React.FC = () => {
                 <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
                   <FiAward className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-white font-bold text-lg">AlumniConnect</span>
+                <span className="text-white font-bold text-lg">CareerSaathi</span>
               </div>
               <p className="text-sm leading-relaxed max-w-xs text-gray-400">Intelligent platform connecting students with alumni for mentorship, career growth, and technical education.</p>
             </div>
@@ -541,7 +541,7 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-            <p>© {new Date().getFullYear()} AlumniConnect. All rights reserved.</p>
+            <p>� {new Date().getFullYear()} CareerSaathi. All rights reserved.</p>
             <p>Built with React, Node.js, Firebase & Groq AI</p>
           </div>
         </div>

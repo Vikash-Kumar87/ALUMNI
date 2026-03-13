@@ -1,5 +1,5 @@
 // Minimal service worker — required for PWA install prompt on some browsers
-const CACHE = 'alumni-connect-v1';
+const CACHE = 'careersaathi-v1';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

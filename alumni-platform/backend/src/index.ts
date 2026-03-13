@@ -82,13 +82,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Root ping & health — MUST be before rate limiters so Render/UptimeRobot never get 429
 app.get('/', (_req, res) => {
-  res.status(200).json({ status: 'OK', service: 'Alumni-Student Platform API' });
+  res.status(200).json({ status: 'OK', service: 'CareerSaathi Platform API' });
 });
 
 app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'OK',
-    service: 'Alumni-Student Platform API',
+    service: 'CareerSaathi Platform API',
     timestamp: new Date().toISOString(),
   });
 });
@@ -123,7 +123,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Alumni Platform API running on port ${PORT}`);
+  console.log(`🚀 CareerSaathi Platform API running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

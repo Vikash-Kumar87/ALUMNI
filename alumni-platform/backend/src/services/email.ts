@@ -19,7 +19,7 @@ function createTransporter() {
   });
 }
 
-const FROM = process.env.EMAIL_FROM || '"AlumniConnect" <no-reply@alumniconnect.app>';
+const FROM = process.env.EMAIL_FROM || '"CareerSaathi" <no-reply@careersaathi.app>';
 
 // ── Shared HTML shell ───────────────────────────────────────────────────────
 function wrapTemplate(accentColor: string, iconEmoji: string, title: string, body: string, ctaLabel: string, ctaUrl: string): string {
@@ -41,7 +41,7 @@ function wrapTemplate(accentColor: string, iconEmoji: string, title: string, bod
             <div style="width:64px;height:64px;background:rgba(255,255,255,0.15);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px;">
               ${iconEmoji}
             </div>
-            <div style="display:block;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:8px;">AlumniConnect</div>
+            <div style="display:block;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:8px;">CareerSaathi</div>
             <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;line-height:1.3;">${title}</h1>
           </td>
         </tr>
@@ -65,7 +65,7 @@ function wrapTemplate(accentColor: string, iconEmoji: string, title: string, bod
         <tr>
           <td style="background:#f8fafc;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;">
             <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
-              You're receiving this because you have email notifications enabled on <strong>AlumniConnect</strong>.<br/>
+              You're receiving this because you have email notifications enabled on <strong>CareerSaathi</strong>.<br/>
               To unsubscribe, update your preferences in your <a href="${ctaUrl}/profile" style="color:#6366f1;text-decoration:none;">Profile Settings</a>.
             </p>
           </td>
@@ -86,14 +86,14 @@ export async function sendNewMessageEmail(
   messagePreview: string,
 ): Promise<void> {
   const transporter = createTransporter();
-  const appUrl = process.env.FRONTEND_URL || 'https://alumniconnect.app';
+  const appUrl = process.env.FRONTEND_URL || 'https://careersaathi.app';
 
   const body = `
     <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 20px;">
       Hi <strong>${recipientName}</strong>,
     </p>
     <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 24px;">
-      <strong>${senderName}</strong> sent you a new message on AlumniConnect.
+      <strong>${senderName}</strong> sent you a new message on CareerSaathi.
     </p>
     <div style="background:linear-gradient(135deg,rgba(238,242,255,0.8),rgba(245,243,255,0.8));border:1.5px solid #c7d2fe;border-radius:16px;padding:20px 24px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
@@ -116,7 +116,7 @@ export async function sendNewMessageEmail(
   await transporter.sendMail({
     from: FROM,
     to: recipientEmail,
-    subject: `💬 New message from ${senderName} — AlumniConnect`,
+    subject: `💬 New message from ${senderName} — CareerSaathi`,
     html,
   });
 }
@@ -130,7 +130,7 @@ export async function sendMentorshipAcceptedEmail(
   alumniCompany?: string,
 ): Promise<void> {
   const transporter = createTransporter();
-  const appUrl = process.env.FRONTEND_URL || 'https://alumniconnect.app';
+  const appUrl = process.env.FRONTEND_URL || 'https://careersaathi.app';
 
   const mentorMeta = [alumniRole, alumniCompany].filter(Boolean).join(' at ');
 
@@ -171,7 +171,7 @@ export async function sendMentorshipAcceptedEmail(
   await transporter.sendMail({
     from: FROM,
     to: recipientEmail,
-    subject: `🎉 ${alumniName} accepted your mentorship request — AlumniConnect`,
+    subject: `🎉 ${alumniName} accepted your mentorship request — CareerSaathi`,
     html,
   });
 }
@@ -190,7 +190,7 @@ export async function sendVideoCallEmail(
       Hi <strong>${recipientName}</strong>,
     </p>
     <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 24px;">
-      <strong>${callerName}</strong> is calling you on AlumniConnect. Click the button below to join the video call now.
+      <strong>${callerName}</strong> is calling you on CareerSaathi. Click the button below to join the video call now.
     </p>
 
     <!-- Call card -->
@@ -222,7 +222,7 @@ export async function sendVideoCallEmail(
   await transporter.sendMail({
     from: FROM,
     to: recipientEmail,
-    subject: `📹 ${callerName} is calling you on AlumniConnect`,
+    subject: `📹 ${callerName} is calling you on CareerSaathi`,
     html,
   });
 }

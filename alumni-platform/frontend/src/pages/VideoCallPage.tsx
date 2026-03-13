@@ -30,8 +30,8 @@ const VideoCallPage: React.FC = () => {
   const receiverId = searchParams.get('receiverId') || '';
   // Sanitize room to only alphanumeric + hyphens (Jitsi requirement)
   const roomName = rawRoom
-    ? `alumniconnect-${rawRoom.replace(/[^a-zA-Z0-9]/g, '').slice(0, 48)}`
-    : `alumniconnect-${Date.now()}`;
+    ? `careersaathi-${rawRoom.replace(/[^a-zA-Z0-9]/g, '').slice(0, 48)}`
+    : `careersaathi-${Date.now()}`;
 
   const [callStarted, setCallStarted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -115,7 +115,7 @@ const VideoCallPage: React.FC = () => {
         height: '100%',
         parentNode: jitsiContainerRef.current,
         userInfo: {
-          displayName: userProfile?.name || 'AlumniConnect User',
+          displayName: userProfile?.name || 'CareerSaathi User',
           email: userProfile?.email || '',
         },
         configOverwrite: {
