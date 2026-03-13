@@ -13,6 +13,37 @@ interface Message {
   timestamp: Date;
 }
 
+const markdownComponents = {
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h2 className="mt-3 mb-2 text-sm sm:text-base font-extrabold text-violet-800 border-l-4 border-violet-300 pl-2.5">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="mt-2.5 mb-1.5 text-xs sm:text-sm font-bold text-indigo-800">{children}</h3>
+  ),
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed mb-2">{children}</p>
+  ),
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul className="space-y-1.5 mb-2 pl-4 list-disc marker:text-violet-500">{children}</ul>
+  ),
+  ol: ({ children }: { children?: React.ReactNode }) => (
+    <ol className="space-y-1.5 mb-2 pl-4 list-decimal marker:text-indigo-600">{children}</ol>
+  ),
+  li: ({ children }: { children?: React.ReactNode }) => (
+    <li className="text-xs sm:text-sm text-slate-700 leading-relaxed">{children}</li>
+  ),
+  strong: ({ children }: { children?: React.ReactNode }) => (
+    <strong className="font-bold text-slate-900">{children}</strong>
+  ),
+  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+    <a href={href} target="_blank" rel="noreferrer" className="text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
+      {children}
+    </a>
+  ),
+};
+
 const QUICK_PROMPTS = [
   { icon: '🚀', text: 'How to become a full-stack developer?' },
   { icon: '📊', text: 'Roadmap for Data Science career' },
@@ -144,11 +175,11 @@ const CareerChatbot: React.FC = () => {
                 <div className={`px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                   msg.role === 'user'
                     ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm shadow-lg shadow-violet-200/60'
-                    : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100/80'
+                    : 'bg-white/95 text-gray-800 rounded-bl-sm shadow-md border border-violet-100/70 ai-answer-surface'
                 }`}>
                   {msg.role === 'assistant' ? (
-                    <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-headings:font-bold prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900 prose-code:bg-violet-50 prose-code:text-violet-700 prose-code:px-1 prose-code:rounded">
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    <div className="max-w-none ai-answer-enter">
+                      <ReactMarkdown components={markdownComponents}>{msg.text}</ReactMarkdown>
                     </div>
                   ) : (
                     <p>{msg.text}</p>
@@ -227,6 +258,19 @@ const CareerChatbot: React.FC = () => {
           ))}
         </div>
       </div>
+
+      <style>{`
+        @keyframes aiAnswerRise {
+          from { opacity: 0; transform: translateY(8px) scale(0.995); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .ai-answer-enter {
+          animation: aiAnswerRise 280ms ease-out;
+        }
+        .ai-answer-surface {
+          background-image: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,255,0.98) 100%);
+        }
+      `}</style>
     </div>
   );
 };
