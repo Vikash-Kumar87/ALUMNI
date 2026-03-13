@@ -78,8 +78,41 @@ router.post('/request', verifyToken, async (req: AuthRequest, res: Response): Pr
       .get();
 
     if (!existing.empty) {
-      res.status(409).json({ error: 'Mentorship request already exists' });
-      return;
+      const existingRequests = existing.docs
+        .map(doc => ({ id: doc.id, ...(doc.data() as { status?: string; createdAt?: string }) }))
+        .sort((a, b) => new Date(String(b.createdAt || 0)).getTime() - new Date(String(a.createdAt || 0)).getTime());
+
+      const active = existingRequests.find(r => r.status === 'pending' || r.status === 'accepted');
+      if (active) {
+        res.status(409).json({ error: 'Mentorship request already exists' });
+        return;
+      }
+
+      // If previous request was rejected, allow request-again by resetting latest record
+      const latestRejected = existingRequests.find(r => r.status === 'rejected');
+      if (latestRejected) {
+        const refreshed = {
+          status: 'pending',
+          message: message || '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          mentorNote: '',
+        };
+        await db.collection('mentorship').doc(latestRejected.id).update(refreshed);
+
+        const studentDoc = await db.collection('users').doc(studentId).get();
+        const studentName = (studentDoc.data() as { name: string })?.name || 'A student';
+        await createNotification(
+          alumniId,
+          'mentorship_request',
+          'New Mentorship Request',
+          `${studentName} has sent you a mentorship request.`,
+          '/mentors',
+        );
+
+        res.status(201).json({ message: 'Mentorship request sent', mentorship: { id: latestRejected.id, ...refreshed } });
+        return;
+      }
     }
 
     const mentorshipId = uuidv4();
@@ -116,7 +149,7 @@ router.post('/request', verifyToken, async (req: AuthRequest, res: Response): Pr
 router.put('/request/:id', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, note } = req.body;
 
     if (!['accepted', 'rejected'].includes(status)) {
       res.status(400).json({ error: 'Invalid status. Use accepted or rejected' });
@@ -137,16 +170,21 @@ router.put('/request/:id', verifyToken, async (req: AuthRequest, res: Response):
       return;
     }
 
-    await mentorshipRef.update({ status, updatedAt: new Date().toISOString() });
+    await mentorshipRef.update({
+      status,
+      mentorNote: typeof note === 'string' ? note.trim().slice(0, 400) : '',
+      updatedAt: new Date().toISOString(),
+    });
 
     // Notify the student about acceptance or rejection
     const alumniDoc = await db.collection('users').doc(req.user!.uid).get();
     const alumniName = (alumniDoc.data() as { name: string })?.name || 'An alumni';
     const notifType = status === 'accepted' ? 'mentorship_accepted' : 'mentorship_rejected';
     const notifTitle = status === 'accepted' ? 'Mentorship Request Accepted! 🎉' : 'Mentorship Request Update';
+    const safeNote = typeof note === 'string' ? note.trim().slice(0, 200) : '';
     const notifBody = status === 'accepted'
-      ? `${alumniName} has accepted your mentorship request! Start a conversation.`
-      : `${alumniName} is not available for mentorship right now.`;
+      ? `${alumniName} has accepted your mentorship request!${safeNote ? ` Note: ${safeNote}` : ' Start a conversation.'}`
+      : `${alumniName} is not available for mentorship right now.${safeNote ? ` Note: ${safeNote}` : ''}`;
     await createNotification(data.studentId, notifType, notifTitle, notifBody, '/mentors');
 
     // Send email notification for acceptance (fire-and-forget)

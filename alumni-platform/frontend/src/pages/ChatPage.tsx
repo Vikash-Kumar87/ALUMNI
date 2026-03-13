@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { usersAPI, chatAPI, paymentsAPI, aiAPI, notificationsAPI } from '../services/api';
+import { usersAPI, chatAPI, paymentsAPI, aiAPI, notificationsAPI, mentorsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import toast from 'react-hot-toast';
@@ -76,6 +76,8 @@ const ChatPage: React.FC = () => {
   const [chatLocked, setChatLocked] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [lockedMentor, setLockedMentor] = useState<{ price_per_session: number; name: string; uid: string } | null>(null);
+  const [mentorshipStatusByMentor, setMentorshipStatusByMentor] = useState<Record<string, 'pending' | 'accepted' | 'rejected'>>({});
+  const [bookingLockBadge, setBookingLockBadge] = useState<{ label: string; tone: 'locked' | 'open' | 'neutral' } | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -98,6 +100,32 @@ const ChatPage: React.FC = () => {
       setActiveTab(userProfile.role as 'alumni' | 'student');
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    const loadMentorshipStatuses = async () => {
+      if (userProfile?.role !== 'student') return;
+      try {
+        const res = await mentorsAPI.getMyRequests();
+        const requests = (res.data.requests || []) as Array<{ alumniId?: string; status?: 'pending' | 'accepted' | 'rejected'; createdAt?: string }>;
+        const latestByAlumni = new Map<string, { status: 'pending' | 'accepted' | 'rejected'; createdAt: string }>();
+        requests.forEach((r) => {
+          if (!r.alumniId || !r.status) return;
+          const prev = latestByAlumni.get(r.alumniId);
+          const t = r.createdAt || new Date(0).toISOString();
+          if (!prev || new Date(t).getTime() > new Date(prev.createdAt).getTime()) {
+            latestByAlumni.set(r.alumniId, { status: r.status, createdAt: t });
+          }
+        });
+        const map: Record<string, 'pending' | 'accepted' | 'rejected'> = {};
+        latestByAlumni.forEach((v, k) => { map[k] = v.status; });
+        setMentorshipStatusByMentor(map);
+      } catch {
+        // silent
+      }
+    };
+
+    loadMentorshipStatuses();
+  }, [userProfile?.role]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -157,11 +185,26 @@ const ChatPage: React.FC = () => {
     setMessages([]);
     setChatLocked(false);
     setLockedMentor(null);
+    setBookingLockBadge(null);
     knownIdsRef.current = new Set();
     setMobileView('chat');
 
     if (userProfile?.role === 'student' && conv.role === 'alumni') {
       const alumniUser = allUsers.find(u => u.uid === conv.userId);
+      const status = mentorshipStatusByMentor[conv.userId];
+
+      if (!status) {
+        setBookingLockBadge({ label: 'Booking locked: send mentorship request first', tone: 'locked' });
+      } else if (status === 'pending') {
+        setBookingLockBadge({ label: 'Booking locked: waiting for mentor acceptance', tone: 'neutral' });
+      } else if (status === 'accepted' && !alumniUser?.price_per_session) {
+        setBookingLockBadge({ label: 'Mentorship accepted: waiting for mentor price', tone: 'neutral' });
+      } else if (status === 'accepted' && alumniUser?.price_per_session) {
+        setBookingLockBadge({ label: 'Booking available for this mentor', tone: 'open' });
+      } else if (status === 'rejected') {
+        setBookingLockBadge({ label: 'Booking locked: request was rejected', tone: 'locked' });
+      }
+
       if (alumniUser?.price_per_session) {
         setCheckingPayment(true);
         try {
@@ -651,6 +694,20 @@ const ChatPage: React.FC = () => {
                     <p className={`text-xs font-medium ${selectedUser!.role === 'alumni' ? 'text-violet-600' : 'text-indigo-600'}`}>
                       {selectedUser!.role === 'alumni' ? '🎓 Alumni' : '📚 Student'}
                     </p>
+                    {userProfile?.role === 'student' && selectedUser?.role === 'alumni' && bookingLockBadge && (
+                      <span
+                        className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={
+                          bookingLockBadge.tone === 'open'
+                            ? { background: 'rgba(236,253,245,1)', color: '#059669' }
+                            : bookingLockBadge.tone === 'locked'
+                              ? { background: 'rgba(254,226,226,1)', color: '#dc2626' }
+                              : { background: 'rgba(243,244,246,1)', color: '#4b5563' }
+                        }
+                      >
+                        🔒 {bookingLockBadge.label}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

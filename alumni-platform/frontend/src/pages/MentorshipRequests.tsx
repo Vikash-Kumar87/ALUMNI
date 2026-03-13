@@ -41,6 +41,7 @@ const MentorshipRequests: React.FC = () => {
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [search, setSearch] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
+  const [actionNotes, setActionNotes] = useState<Record<string, string>>({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -79,10 +80,12 @@ const MentorshipRequests: React.FC = () => {
   const handleUpdate = async (id: string, status: 'accepted' | 'rejected') => {
     setUpdatingId(id);
     try {
-      await mentorsAPI.updateRequest(id, status);
+      const note = actionNotes[id]?.trim() || undefined;
+      await mentorsAPI.updateRequest(id, status, note);
       setRequests((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status } : r)),
       );
+      setActionNotes(prev => ({ ...prev, [id]: '' }));
       toast.success(status === 'accepted' ? 'Mentorship accepted! 🎉' : 'Request declined');
     } catch (err) {
       toast.error((err as Error).message || 'Failed to update request');
@@ -290,6 +293,13 @@ const MentorshipRequests: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {req.status === 'pending' && (
                         <>
+                          <input
+                            type="text"
+                            value={actionNotes[req.id] || ''}
+                            onChange={e => setActionNotes(prev => ({ ...prev, [req.id]: e.target.value }))}
+                            placeholder="Optional note for student"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white"
+                          />
                           <button onClick={() => handleUpdate(req.id, 'accepted')} disabled={updatingId === req.id}
                             className="flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-xl text-white transition-all duration-200 disabled:opacity-50"
                             style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 6px 16px rgba(16,185,129,0.3)' }}

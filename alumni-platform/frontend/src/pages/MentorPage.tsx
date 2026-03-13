@@ -313,10 +313,14 @@ const MentorPage: React.FC = () => {
               </button>
             ) : userProfile?.role === 'student' && mentorshipStatus === 'rejected' ? (
               <button
-                disabled
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-rose-700 bg-rose-100 border border-rose-200 cursor-not-allowed"
+                onClick={() => {
+                  setMessage('Hi, I would love to request mentorship again and learn from your guidance.');
+                  setMessageModal({ uid: mentor.uid, name: mentor.name, mentor });
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white transition-all duration-200"
+                style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)', boxShadow: '0 2px 10px rgba(244,63,94,0.3)' }}
               >
-                <FiX className="w-3.5 h-3.5" /> Request Rejected
+                <FiRefreshCw className="w-3.5 h-3.5" /> Request Again
               </button>
             ) : userProfile?.role === 'student' ? (
               <button

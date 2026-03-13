@@ -98,8 +98,8 @@ export const mentorsAPI = {
     apiService.get('/mentors', { params }),
   requestMentorship: (alumniId: string, message: string) =>
     apiService.post('/mentors/request', { alumniId, message }),
-  updateRequest: (id: string, status: 'accepted' | 'rejected') =>
-    apiService.put(`/mentors/request/${id}`, { status }),
+  updateRequest: (id: string, status: 'accepted' | 'rejected', note?: string) =>
+    apiService.put(`/mentors/request/${id}`, { status, note }),
   getMyRequests: () => apiService.get('/mentors/my-requests'),
 };
 

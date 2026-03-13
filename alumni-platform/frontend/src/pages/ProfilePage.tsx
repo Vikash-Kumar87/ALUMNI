@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usersAPI } from '../services/api';
+import { usersAPI, mentorsAPI } from '../services/api';
 import {
   FiEdit2, FiSave, FiX, FiLinkedin, FiBriefcase, FiBook,
   FiUser, FiMail, FiAward, FiTarget, FiZap, FiBell, FiMessageCircle, FiUserCheck
@@ -24,6 +24,7 @@ const ProfilePage: React.FC = () => {
     mentorship: userProfile?.emailNotifications?.mentorship !== false,
   }));
   const [emailSaving, setEmailSaving] = useState<'messages' | 'mentorship' | null>(null);
+  const [bookingBadge, setBookingBadge] = useState<{ label: string; tone: 'locked' | 'open' | 'neutral' } | null>(null);
 
   // Keep emailPrefs in sync whenever userProfile refreshes from Firestore
   useEffect(() => {
@@ -32,6 +33,41 @@ const ProfilePage: React.FC = () => {
       mentorship: userProfile?.emailNotifications?.mentorship !== false,
     });
   }, [userProfile?.emailNotifications?.messages, userProfile?.emailNotifications?.mentorship]);
+
+  useEffect(() => {
+    const loadBookingBadge = async () => {
+      if (!userProfile) return;
+
+      if (userProfile.role === 'alumni') {
+        const hasPrice = Number(userProfile.price_per_session || 0) > 0;
+        setBookingBadge(
+          hasPrice
+            ? { label: 'Booking unlocked for students', tone: 'open' }
+            : { label: 'Booking locked: set session price', tone: 'locked' },
+        );
+        return;
+      }
+
+      try {
+        const res = await mentorsAPI.getMyRequests();
+        const requests = (res.data.requests || []) as Array<{ status?: string }>;
+        const acceptedCount = requests.filter(r => r.status === 'accepted').length;
+        const pendingCount = requests.filter(r => r.status === 'pending').length;
+
+        if (acceptedCount > 0) {
+          setBookingBadge({ label: `Booking unlocked with ${acceptedCount} accepted mentor${acceptedCount > 1 ? 's' : ''}`, tone: 'open' });
+        } else if (pendingCount > 0) {
+          setBookingBadge({ label: 'Booking locked: wait for mentor acceptance', tone: 'neutral' });
+        } else {
+          setBookingBadge({ label: 'Booking locked: send mentorship request first', tone: 'locked' });
+        }
+      } catch {
+        setBookingBadge({ label: 'Booking status unavailable', tone: 'neutral' });
+      }
+    };
+
+    loadBookingBadge();
+  }, [userProfile]);
 
   const [form, setForm] = useState({
     name: userProfile?.name || '',
@@ -200,6 +236,20 @@ const ProfilePage: React.FC = () => {
                   {userProfile.branch && (
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                       {userProfile.branch}
+                    </span>
+                  )}
+                  {bookingBadge && (
+                    <span
+                      className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                      style={
+                        bookingBadge.tone === 'open'
+                          ? { background: 'rgba(236,253,245,1)', color: '#059669' }
+                          : bookingBadge.tone === 'locked'
+                            ? { background: 'rgba(254,226,226,1)', color: '#dc2626' }
+                            : { background: 'rgba(243,244,246,1)', color: '#4b5563' }
+                      }
+                    >
+                      🔒 {bookingBadge.label}
                     </span>
                   )}
                 </div>
