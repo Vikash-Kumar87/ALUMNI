@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import {
   FiUsers, FiBriefcase, FiMessageSquare, FiArrowRight, FiCheckCircle,
   FiClock, FiUserCheck, FiMessageCircle, FiCheck, FiX, FiAward,
-  FiTrendingUp, FiSettings, FiCalendar, FiZap
+  FiTrendingUp, FiSettings, FiCalendar, FiZap, FiEdit2, FiTrash2
 } from 'react-icons/fi';
 import { BiRupee } from 'react-icons/bi';
 
@@ -45,6 +45,21 @@ const AlumniDashboard: React.FC = () => {
   const [paidSessions, setPaidSessions] = useState<PaidSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [jobForm, setJobForm] = useState({
+    title: '',
+    company: '',
+    location: '',
+    type: 'job' as Job['type'],
+    description: '',
+    requirements: '',
+    salary: '',
+    applyLink: '',
+    referral: '',
+  });
+  const [savingJob, setSavingJob] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [deletingDiscussionId, setDeletingDiscussionId] = useState<string | null>(null);
 
   // Mentorship settings state
   const [pricePerSession, setPricePerSession] = useState<string>('');
@@ -126,6 +141,106 @@ const AlumniDashboard: React.FC = () => {
       toast.error((err as Error).message || 'Failed to save settings');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const openEditJob = (job: Job) => {
+    setEditingJob(job);
+    setJobForm({
+      title: job.title || '',
+      company: job.company || '',
+      location: job.location || '',
+      type: job.type || 'job',
+      description: job.description || '',
+      requirements: (job.requirements || []).join(', '),
+      salary: job.salary || '',
+      applyLink: job.applyLink || '',
+      referral: job.referral || '',
+    });
+  };
+
+  const closeEditJob = () => {
+    setEditingJob(null);
+    setSavingJob(false);
+  };
+
+  const handleUpdateJob = async () => {
+    if (!editingJob) return;
+
+    const title = jobForm.title.trim();
+    const company = jobForm.company.trim();
+    const description = jobForm.description.trim();
+
+    if (!title || !company || !description) {
+      toast.error('Title, company and description are required');
+      return;
+    }
+
+    setSavingJob(true);
+    try {
+      const payload = {
+        title,
+        company,
+        location: jobForm.location.trim() || 'Remote',
+        type: jobForm.type,
+        description,
+        requirements: jobForm.requirements
+          .split(',')
+          .map((r) => r.trim())
+          .filter(Boolean),
+        salary: jobForm.salary.trim(),
+        applyLink: jobForm.applyLink.trim(),
+        referral: jobForm.referral.trim(),
+      };
+
+      await jobsAPI.update(editingJob.id, payload);
+      setMyJobs((prev) =>
+        prev.map((job) =>
+          job.id === editingJob.id
+            ? {
+                ...job,
+                ...payload,
+              }
+            : job,
+        ),
+      );
+      toast.success('Job updated successfully');
+      closeEditJob();
+    } catch (err) {
+      toast.error((err as Error).message || 'Failed to update job');
+      setSavingJob(false);
+    }
+  };
+
+  const handleDeleteJob = async (jobId: string) => {
+    const ok = window.confirm('Delete this job post?');
+    if (!ok) return;
+
+    setDeletingJobId(jobId);
+    try {
+      await jobsAPI.delete(jobId);
+      setMyJobs((prev) => prev.filter((job) => job.id !== jobId));
+      toast.success('Job deleted successfully');
+    } catch (err) {
+      toast.error((err as Error).message || 'Failed to delete job');
+    } finally {
+      setDeletingJobId(null);
+    }
+  };
+
+  const handleDeleteDiscussion = async (discussionId: string) => {
+    const ok = window.confirm('Delete this discussion?');
+    if (!ok) return;
+
+    setDeletingDiscussionId(discussionId);
+    try {
+      await discussionAPI.delete(discussionId);
+      setRecentDiscussions((prev) => prev.filter((disc) => disc.id !== discussionId));
+      toast.success('Discussion deleted successfully');
+    } catch (err) {
+      toast.error((err as Error).message || 'Failed to delete discussion');
+    } finally {
+      setDeletingDiscussionId(null);
     }
   };
 
@@ -345,7 +460,7 @@ const AlumniDashboard: React.FC = () => {
                   <h3 className="font-bold text-gray-900 text-sm">My Posted Jobs</h3>
                 </div>
                 <div className="space-y-3">
-                  {myJobs.slice(0, 3).map((job, ji) => (
+                  {myJobs.slice(0, 4).map((job, ji) => (
                     <div key={job.id} className="flex items-center gap-2.5"
                       style={{ animation: `fadeInUp 0.3s ease-out ${ji * 50}ms both` }}>
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}>
@@ -354,6 +469,27 @@ const AlumniDashboard: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{job.title}</p>
                         <p className="text-xs text-gray-400 truncate">{job.company}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => openEditJob(job)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                          style={{ background: 'rgba(238,242,255,1)', color: '#4f46e5' }}
+                          aria-label="Edit job"
+                          title="Edit job"
+                        >
+                          <FiEdit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteJob(job.id)}
+                          disabled={deletingJobId === job.id}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-60"
+                          style={{ background: 'rgba(254,226,226,1)', color: '#dc2626' }}
+                          aria-label="Delete job"
+                          title="Delete job"
+                        >
+                          <FiTrash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -387,31 +523,162 @@ const AlumniDashboard: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {recentDiscussions.map((disc, di) => (
-                <Link key={disc.id} to="/forum"
-                  className="flex items-start gap-3 p-3 rounded-xl border border-transparent transition-all duration-200 group"
-                  style={{ animation: `fadeInUp 0.35s ease-out ${di * 50}ms both`, background: 'rgba(249,250,251,0.8)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background='rgba(245,243,255,0.9)'; (e.currentTarget as HTMLAnchorElement).style.borderColor='#ddd6fe'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background='rgba(249,250,251,0.8)'; (e.currentTarget as HTMLAnchorElement).style.borderColor='transparent'; }}>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,243,255,1)' }}>
-                    <FiMessageSquare className="w-4 h-4 text-violet-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors">{disc.question}</p>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <span className="text-xs text-gray-400">👤 {disc.postedByName}</span>
-                      <span className="text-xs text-gray-400">{disc.answers?.length || 0} answers</span>
-                      <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(disc.createdAt), { addSuffix: true })}</span>
+              {recentDiscussions.map((disc, di) => {
+                const isOwnDiscussion = disc.postedBy === userProfile?.uid;
+                return (
+                  <div key={disc.id}
+                    className="flex items-start gap-3 p-3 rounded-xl border border-transparent transition-all duration-200"
+                    style={{ animation: `fadeInUp 0.35s ease-out ${di * 50}ms both`, background: 'rgba(249,250,251,0.8)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background='rgba(245,243,255,0.9)'; (e.currentTarget as HTMLDivElement).style.borderColor='#ddd6fe'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background='rgba(249,250,251,0.8)'; (e.currentTarget as HTMLDivElement).style.borderColor='transparent'; }}>
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,243,255,1)' }}>
+                      <FiMessageSquare className="w-4 h-4 text-violet-600" />
+                    </div>
+                    <Link to="/forum" className="flex-1 min-w-0 group">
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors">{disc.question}</p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-xs text-gray-400">👤 {disc.postedByName}</span>
+                        <span className="text-xs text-gray-400">{disc.answers?.length || 0} answers</span>
+                        <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(disc.createdAt), { addSuffix: true })}</span>
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      {(disc.answers?.length ?? 0) === 0 && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(254,243,199,1)', color: '#d97706' }}>Unanswered</span>
+                      )}
+                      {isOwnDiscussion && (
+                        <button
+                          onClick={() => handleDeleteDiscussion(disc.id)}
+                          disabled={deletingDiscussionId === disc.id}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-60"
+                          style={{ background: 'rgba(254,226,226,1)', color: '#dc2626' }}
+                          aria-label="Delete discussion"
+                          title="Delete discussion"
+                        >
+                          <FiTrash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                  {(disc.answers?.length ?? 0) === 0 && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(254,243,199,1)', color: '#d97706' }}>Unanswered</span>
-                  )}
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
+
+        {editingJob && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50" onClick={closeEditJob} />
+            <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">Edit Job Post</h3>
+                <button
+                  onClick={closeEditJob}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                >
+                  <FiX className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Title</label>
+                  <input
+                    value={jobForm.title}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Company</label>
+                  <input
+                    value={jobForm.company}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, company: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Location</label>
+                  <input
+                    value={jobForm.location}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Type</label>
+                  <select
+                    value={jobForm.type}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, type: e.target.value as Job['type'] }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  >
+                    <option value="job">Job</option>
+                    <option value="internship">Internship</option>
+                    <option value="referral">Referral</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
+                  <textarea
+                    value={jobForm.description}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, description: e.target.value }))}
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Requirements (comma separated)</label>
+                  <input
+                    value={jobForm.requirements}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, requirements: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Salary</label>
+                  <input
+                    value={jobForm.salary}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, salary: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Apply Link</label>
+                  <input
+                    value={jobForm.applyLink}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, applyLink: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Referral Note</label>
+                  <input
+                    value={jobForm.referral}
+                    onChange={(e) => setJobForm((prev) => ({ ...prev, referral: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-2">
+                <button
+                  onClick={closeEditJob}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateJob}
+                  disabled={savingJob}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}
+                >
+                  {savingJob ? 'Saving...' : 'Update Job'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Profile completion banner ── */}
         {(!userProfile?.company || !userProfile?.linkedin) && (
