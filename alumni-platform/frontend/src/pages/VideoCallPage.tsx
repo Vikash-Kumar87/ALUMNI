@@ -5,7 +5,7 @@ import { chatAPI, notificationsAPI } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhone, FiCopy,
-  FiCheck, FiUsers, FiMaximize2, FiMinimize2, FiArrowLeft, FiShare2, FiMessageCircle, FiSend,
+  FiCheck, FiUsers, FiMaximize2, FiMinimize2, FiArrowLeft, FiShare2, FiMessageCircle, FiSend, FiMonitor,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -30,14 +30,15 @@ const VideoCallPage: React.FC = () => {
   const receiverId = searchParams.get('receiverId') || '';
   // Sanitize room to only alphanumeric + hyphens (Jitsi requirement)
   const roomName = rawRoom
-    ? `careersaathi-${rawRoom.replace(/[^a-zA-Z0-9]/g, '').slice(0, 48)}`
-    : `careersaathi-${Date.now()}`;
+    ? `alumni-${rawRoom.replace(/[^a-zA-Z0-9]/g, '').slice(0, 48)}`
+    : `alumni-${Date.now()}`;
 
   const [callStarted, setCallStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [timer, setTimer] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -159,6 +160,10 @@ const VideoCallPage: React.FC = () => {
         setCallStarted(false);
         navigate(-1);
       });
+
+      apiRef.current.addEventListener('screenSharingStatusChanged', (e: { on?: boolean }) => {
+        setIsScreenSharing(Boolean(e?.on));
+      });
     };
 
     if (window.JitsiMeetExternalAPI) {
@@ -205,19 +210,35 @@ const VideoCallPage: React.FC = () => {
     try {
       setInvitationSending(studentId);
       const callLink = `${window.location.origin}/video-call?room=${rawRoom}&peer=${encodeURIComponent(userProfile?.name || 'Alumni')}`;
-      
-      await notificationsAPI.sendVideoCallInvitation(
-        studentId,
-        callLink,
-        userProfile?.name || 'An Alumni',
-      );
-      
-      toast.success('Video call invitation sent!');
+
+      const [notifRes, chatRes] = await Promise.allSettled([
+        notificationsAPI.sendVideoCallInvitation(
+          studentId,
+          callLink,
+          userProfile?.name || 'An Alumni',
+        ),
+        chatAPI.sendMessage(studentId, callLink, { messageType: 'video_call_link' }),
+      ]);
+
+      if (notifRes.status === 'fulfilled' || chatRes.status === 'fulfilled') {
+        toast.success('Video call invitation sent!');
+      } else {
+        toast.error('Failed to send invitation');
+      }
       setInvitationSending(null);
     } catch (err) {
       toast.error('Failed to send invitation');
       setInvitationSending(null);
       console.error('Send invitation error:', err);
+    }
+  };
+
+  const toggleScreenShare = () => {
+    if (!apiRef.current) return;
+    try {
+      apiRef.current.executeCommand('toggleShareScreen');
+    } catch {
+      toast.error('Screen share is not supported on this device/browser.');
     }
   };
 
@@ -476,6 +497,17 @@ const VideoCallPage: React.FC = () => {
               <span className="text-sm font-semibold text-white/70">{peerName}</span>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={toggleScreenShare}
+                  className={`p-2 rounded-xl transition-all ${
+                    isScreenSharing
+                      ? 'text-emerald-300 bg-emerald-500/15'
+                      : 'text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Share screen"
+                >
+                  <FiMonitor className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => setFullscreen(true)}
                   className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all"
                 >
@@ -496,6 +528,17 @@ const VideoCallPage: React.FC = () => {
           {/* Fullscreen exit */}
           {fullscreen && (
             <div className="absolute top-4 right-4 z-50 flex gap-2">
+              <button
+                onClick={toggleScreenShare}
+                className={`p-2 rounded-xl backdrop-blur-sm transition-all ${
+                  isScreenSharing
+                    ? 'bg-emerald-500/25 text-emerald-200'
+                    : 'bg-black/40 text-white/70 hover:text-white hover:bg-black/60'
+                }`}
+                title="Share screen"
+              >
+                <FiMonitor className="w-4 h-4" />
+              </button>
               <button onClick={() => setFullscreen(false)}
                 className="p-2 rounded-xl bg-black/40 text-white/70 hover:text-white hover:bg-black/60 transition-all backdrop-blur-sm">
                 <FiMinimize2 className="w-4 h-4" />
