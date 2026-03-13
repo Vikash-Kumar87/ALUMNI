@@ -173,14 +173,19 @@ const WeeklyCareerReport: React.FC = () => {
   const energy = ENERGY[report?.energyLevel ?? 'leveling_up'] ?? ENERGY.leveling_up;
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#f0f0ff 0%,#f8f9ff 40%,#fff 100%)' }}>
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-16">
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(160deg,#eef2ff 0%,#f5f3ff 35%,#f8fafc 100%)' }}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-30" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.22), transparent 70%)' }} />
+        <div className="absolute top-1/3 -left-16 w-64 h-64 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.18), transparent 72%)' }} />
+        <div className="absolute -bottom-20 right-1/4 w-80 h-80 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(14,165,233,0.12), transparent 75%)' }} />
+      </div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-16 relative z-10">
 
         {/* ── top bar ── */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl px-3 py-2 shadow-sm">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors group"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors group px-2 py-1.5 rounded-xl hover:bg-white"
           >
             <FiArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             Back
@@ -190,7 +195,7 @@ const WeeklyCareerReport: React.FC = () => {
               <motion.button
                 onClick={handleCopy}
                 whileTap={{ scale: 0.93 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm"
                 style={{ background: copied ? '#dcfce7' : '#ede9fe', color: copied ? '#059669' : '#7c3aed' }}
               >
                 {copied ? <FiCheck className="w-3.5 h-3.5" /> : <FiShare2 className="w-3.5 h-3.5" />}
@@ -201,7 +206,7 @@ const WeeklyCareerReport: React.FC = () => {
               <motion.button
                 onClick={() => fetchReport()}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-xl bg-white border border-gray-200 text-gray-400 hover:text-violet-600 hover:border-violet-200 transition-all shadow-sm"
+                className="p-2 rounded-xl bg-white border border-gray-200 text-gray-400 hover:text-violet-600 hover:border-violet-200 transition-all shadow-sm hover:shadow"
                 title="Regenerate report"
               >
                 <FiRefreshCw className="w-4 h-4" />

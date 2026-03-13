@@ -197,13 +197,17 @@ const SkillGapAnalyzer: React.FC = () => {
 
   /* ─────────────────── RENDER ─────────────────── */
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#f5f3ff 0%,#f8f9ff 40%,#fff 100%)' }}>
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-16">
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(160deg,#eef2ff 0%,#f5f3ff 35%,#f8fafc 100%)' }}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-30" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.2), transparent 70%)' }} />
+        <div className="absolute top-1/3 -left-16 w-64 h-64 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.16), transparent 72%)' }} />
+      </div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-16 relative z-10">
 
         {/* ── top bar ── */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-6 rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl px-3 py-2 shadow-sm w-fit">
           <button onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors group">
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors group px-2 py-1.5 rounded-xl hover:bg-white">
             <FiArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             Back
           </button>
@@ -225,7 +229,7 @@ const SkillGapAnalyzer: React.FC = () => {
         <motion.form
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.4 }}
           onSubmit={e => { e.preventDefault(); handleAnalyze(); }}
-          className="mb-5"
+          className="mb-5 rounded-2xl border border-white/70 bg-white/75 backdrop-blur-xl p-3 shadow-sm"
         >
           <div className="relative flex gap-2">
             <div className="relative flex-1">
@@ -267,7 +271,7 @@ const SkillGapAnalyzer: React.FC = () => {
 
         {/* ── popular targets ── */}
         {!loading && !analysis && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-2xl border border-white/70 bg-white/70 backdrop-blur-xl p-3 sm:p-4 shadow-sm">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2.5">Popular Targets</p>
             <div className="grid grid-cols-2 gap-2">
               {POPULAR_TARGETS.map((pt, i) => (
