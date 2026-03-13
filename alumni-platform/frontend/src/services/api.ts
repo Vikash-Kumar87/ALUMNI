@@ -253,4 +253,12 @@ export const eventsAPI = {
   getMyRegistrations: () => apiService.get('/events/my/registrations'),
 };
 
+export const referralsAPI = {
+  create: (data: { jobId: string; note?: string; resumeLink?: string }) =>
+    apiService.post('/referrals', data),
+  getMine: () => apiService.get('/referrals/my'),
+  updateStatus: (id: string, data: { status: 'requested' | 'in_review' | 'referred' | 'interview' | 'offered' | 'rejected' | 'joined'; feedback?: string }) =>
+    apiService.put(`/referrals/${id}/status`, data),
+};
+
 export default apiService;

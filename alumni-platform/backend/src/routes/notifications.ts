@@ -16,7 +16,9 @@ export type NotificationType =
   | 'video_call'
   | 'event_created'
   | 'event_reminder'
-  | 'event_cancelled';
+  | 'event_cancelled'
+  | 'referral_request'
+  | 'referral_update';
 
 export interface Notification {
   id: string;

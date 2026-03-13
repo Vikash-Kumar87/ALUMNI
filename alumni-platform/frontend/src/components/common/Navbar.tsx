@@ -23,6 +23,8 @@ const NOTIF_CONFIG: Record<NotificationType, { icon: React.ElementType; grad: st
   event_created:       { icon: FiCalendar,    grad: 'linear-gradient(135deg,#6366f1,#7c3aed)', bg: 'rgba(238,242,255,0.9)', label: 'New Event' },
   event_reminder:      { icon: FiClock,       grad: 'linear-gradient(135deg,#f59e0b,#d97706)', bg: 'rgba(255,251,235,0.9)', label: 'Event Reminder' },
   event_cancelled:     { icon: FiXCircle,     grad: 'linear-gradient(135deg,#f43f5e,#e11d48)', bg: 'rgba(255,241,242,0.9)', label: 'Event Cancelled' },
+  referral_request:    { icon: FiUserPlus,    grad: 'linear-gradient(135deg,#0ea5e9,#2563eb)', bg: 'rgba(239,246,255,0.9)', label: 'Referral Request' },
+  referral_update:     { icon: FiCheckCircle, grad: 'linear-gradient(135deg,#14b8a6,#059669)', bg: 'rgba(240,253,250,0.9)', label: 'Referral Update' },
 };
 
 function timeAgo(iso: string) {
@@ -120,6 +122,7 @@ const Navbar: React.FC = () => {
         { to: '/dashboard', label: 'Dashboard', icon: FiHome },
         { to: '/mentorship-requests', label: 'Students', icon: FiUserCheck },
         { to: '/events', label: 'Events', icon: FiCalendar },
+        { to: '/referrals', label: 'Referrals', icon: FiUserCheck },
         { to: '/portfolio-showcase', label: 'Portfolios', icon: FiUsers },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Post Jobs', icon: FiBriefcase },
@@ -130,6 +133,7 @@ const Navbar: React.FC = () => {
         { to: '/dashboard', label: 'Dashboard', icon: FiHome },
         { to: '/mentors', label: 'Mentors', icon: FiUsers },
         { to: '/events', label: 'Events', icon: FiCalendar },
+        { to: '/referrals', label: 'Referrals', icon: FiUserCheck },
         { to: '/portfolio-showcase', label: 'Portfolios', icon: FiUsers },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Jobs', icon: FiBriefcase },

@@ -17,6 +17,7 @@ import aiRoutes from './routes/ai';
 import notificationRoutes from './routes/notifications';
 import paymentRoutes from './routes/payments';
 import eventRoutes from './routes/events';
+import referralRoutes from './routes/referrals';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -106,6 +107,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/referrals', referralRoutes);
 
 // 404 handler
 app.use((_req, res) => {

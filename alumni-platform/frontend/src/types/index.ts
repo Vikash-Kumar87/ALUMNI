@@ -281,7 +281,44 @@ export type NotificationType =
   | 'video_call'
   | 'event_created'
   | 'event_reminder'
-  | 'event_cancelled';
+  | 'event_cancelled'
+  | 'referral_request'
+  | 'referral_update';
+
+export type ReferralStatus =
+  | 'requested'
+  | 'in_review'
+  | 'referred'
+  | 'interview'
+  | 'offered'
+  | 'rejected'
+  | 'joined';
+
+export interface ReferralTimelineItem {
+  status: ReferralStatus;
+  note?: string;
+  at: string;
+  by: string;
+}
+
+export interface ReferralRequest {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  alumniId: string;
+  alumniName: string;
+  note?: string;
+  resumeLink?: string;
+  status: ReferralStatus;
+  feedback?: string;
+  timeline: ReferralTimelineItem[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Notification {
   id: string;
