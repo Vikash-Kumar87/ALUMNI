@@ -8,7 +8,7 @@ import {
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
   FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
   FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget, FiStar, FiChevronDown, FiCalendar,
-  FiVideo, FiClock, FiTrendingUp
+  FiVideo, FiClock, FiTrendingUp, FiMoreHorizontal
 } from 'react-icons/fi';
 
 /* ── Notification type config ── */
@@ -46,10 +46,12 @@ const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
   const toolsRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -84,6 +86,9 @@ const Navbar: React.FC = () => {
       if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) {
         setToolsOpen(false);
       }
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -110,6 +115,7 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     setMobileOpen(false);
     setProfileOpen(false);
+    setMoreOpen(false);
   }, [location.pathname]);
 
   const handleLogout = async () => {
@@ -141,6 +147,10 @@ const Navbar: React.FC = () => {
         { to: '/jobs', label: 'Jobs', icon: FiBriefcase },
         { to: '/chat', label: 'Messages', icon: FiMessageCircle },
       ];
+
+  const desktopVisibleCount = userProfile?.role === 'alumni' ? 6 : 7;
+  const primaryNavLinks = navLinks.slice(0, desktopVisibleCount);
+  const moreNavLinks = navLinks.slice(desktopVisibleCount);
 
   const aiToolLinks = [
     { to: '/roadmap', label: 'Roadmap', icon: FiMap },
@@ -176,7 +186,7 @@ const Navbar: React.FC = () => {
             {/* Desktop nav */}
             {currentUser && (
               <div className="hidden md:flex items-center gap-0.5 flex-1 mx-6">
-                {navLinks.map(({ to, label, icon: Icon }) => (
+                {primaryNavLinks.map(({ to, label, icon: Icon }) => (
                   <Link
                     key={to}
                     to={to}
@@ -193,6 +203,47 @@ const Navbar: React.FC = () => {
                     )}
                   </Link>
                 ))}
+
+                {moreNavLinks.length > 0 && (
+                  <div className="relative" ref={moreRef}>
+                    <button
+                      onClick={() => setMoreOpen(!moreOpen)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap relative ${
+                        moreNavLinks.some(l => isActive(l.to))
+                          ? 'bg-white/15 text-white shadow-sm'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <FiMoreHorizontal className="w-4 h-4" />
+                      <span className="hidden lg:block">More</span>
+                      <FiChevronDown className={`w-3 h-3 transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
+                      {moreNavLinks.some(l => isActive(l.to)) && (
+                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#4f46e5,#7c3aed)' }} />
+                      )}
+                    </button>
+
+                    {moreOpen && (
+                      <div
+                        className="absolute left-0 top-full mt-2 w-52 rounded-2xl shadow-2xl border border-white/20 py-2 z-50 overflow-hidden"
+                        style={{ background: 'rgba(30,27,75,0.97)', backdropFilter: 'blur(20px)', animation: 'fadeInUp 0.18s ease-out both' }}
+                      >
+                        {moreNavLinks.map(({ to, label, icon: Icon }) => (
+                          <Link
+                            key={to}
+                            to={to}
+                            onClick={() => setMoreOpen(false)}
+                            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
+                              isActive(to) ? 'text-white bg-white/15' : 'text-white/70 hover:text-white hover:bg-white/10'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4 flex-shrink-0" />
+                            {label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* AI Tools dropdown — students only */}
                 {userProfile?.role === 'student' && (
