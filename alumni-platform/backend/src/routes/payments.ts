@@ -19,6 +19,21 @@ router.post('/book-session', verifyToken, async (req: AuthRequest, res: Response
       return;
     }
 
+    // Student must have an accepted mentorship request with this mentor before booking
+    const mentorshipSnap = await db.collection('mentorship')
+      .where('studentId', '==', studentId)
+      .get();
+
+    const hasAcceptedMentorship = mentorshipSnap.docs.some(doc => {
+      const data = doc.data() as { alumniId?: string; status?: string };
+      return data.alumniId === mentorId && data.status === 'accepted';
+    });
+
+    if (!hasAcceptedMentorship) {
+      res.status(403).json({ error: 'Send mentorship request first and wait for mentor acceptance before booking.' });
+      return;
+    }
+
     // Fetch mentor pricing from Firestore
     const mentorDoc = await db.collection('users').doc(mentorId).get();
     if (!mentorDoc.exists) {

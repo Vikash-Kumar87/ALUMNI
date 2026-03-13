@@ -83,8 +83,15 @@ const MentorPage: React.FC = () => {
   const [bookingModal, setBookingModal] = useState<BookingModal | null>(null);
   const [payStep, setPayStep] = useState<PayStep>('confirm');
   const [bookedMentorId, setBookedMentorId] = useState<string | null>(null);
+  const [mentorshipStatusByMentor, setMentorshipStatusByMentor] = useState<Record<string, 'pending' | 'accepted' | 'rejected'>>({});
 
   useEffect(() => { fetchMentors(); }, [search, skillFilter]);
+
+  useEffect(() => {
+    if (userProfile?.role === 'student') {
+      fetchMentorshipStatuses();
+    }
+  }, [userProfile?.role]);
 
   const fetchMentors = async () => {
     setLoading(true);
@@ -105,6 +112,33 @@ const MentorPage: React.FC = () => {
     } finally { setAiLoading(false); }
   };
 
+  const fetchMentorshipStatuses = async () => {
+    try {
+      const res = await mentorsAPI.getMyRequests();
+      const requests = (res.data.requests || []) as Array<{ alumniId?: string; status?: 'pending' | 'accepted' | 'rejected'; createdAt?: string }>;
+
+      const statusMap: Record<string, 'pending' | 'accepted' | 'rejected'> = {};
+      const latestByAlumni = new Map<string, { status: 'pending' | 'accepted' | 'rejected'; createdAt: string }>();
+
+      requests.forEach((r) => {
+        if (!r.alumniId || !r.status) return;
+        const prev = latestByAlumni.get(r.alumniId);
+        const currentCreatedAt = r.createdAt || new Date(0).toISOString();
+        if (!prev || new Date(currentCreatedAt).getTime() > new Date(prev.createdAt).getTime()) {
+          latestByAlumni.set(r.alumniId, { status: r.status, createdAt: currentCreatedAt });
+        }
+      });
+
+      latestByAlumni.forEach((v, k) => {
+        statusMap[k] = v.status;
+      });
+
+      setMentorshipStatusByMentor(statusMap);
+    } catch {
+      // non-blocking for UI
+    }
+  };
+
   const handleRequest = async (alumniId: string) => {
     if (!messageModal) return;
     setRequestingId(alumniId);
@@ -115,6 +149,7 @@ const MentorPage: React.FC = () => {
       setMessage('');
       setIcebreakers([]);
       setSelectedIcebreaker(null);
+      await fetchMentorshipStatuses();
     } catch (err) {
       toast.error((err as Error).message || 'Failed to send request');
     } finally { setRequestingId(null); }
@@ -182,6 +217,8 @@ const MentorPage: React.FC = () => {
   // ── MentorCard ─────────────────────────────────────────────────────────────
   const MentorCard: React.FC<{ mentor: User; matchScore?: number; reason?: string; idx?: number }> = ({ mentor, matchScore, reason, idx = 0 }) => {
     const gradient = AVATAR_GRADIENTS[(mentor.name?.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length];
+    const mentorshipStatus = mentorshipStatusByMentor[mentor.uid];
+    const canBookPaidSession = userProfile?.role === 'student' && mentorshipStatus === 'accepted' && Boolean(mentor.price_per_session);
     return (
       <div
         className="bg-white/85 backdrop-blur-sm rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300"
@@ -250,7 +287,7 @@ const MentorPage: React.FC = () => {
 
           {/* Actions */}
           <div className="flex gap-2">
-            {userProfile?.role === 'student' && mentor.price_per_session ? (
+            {canBookPaidSession ? (
               <button
                 onClick={() => openBookingModal(mentor)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white transition-all duration-200"
@@ -259,6 +296,27 @@ const MentorPage: React.FC = () => {
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 10px rgba(124,58,237,0.3)'; e.currentTarget.style.transform = ''; }}
               >
                 <FiCalendar className="w-3.5 h-3.5" /> Book · ₹{mentor.price_per_session}
+              </button>
+            ) : userProfile?.role === 'student' && mentorshipStatus === 'pending' ? (
+              <button
+                disabled
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 cursor-not-allowed"
+              >
+                <FiClock className="w-3.5 h-3.5" /> Request Sent
+              </button>
+            ) : userProfile?.role === 'student' && mentorshipStatus === 'accepted' && !mentor.price_per_session ? (
+              <button
+                disabled
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 cursor-not-allowed"
+              >
+                <FiClock className="w-3.5 h-3.5" /> Accepted · Waiting for price
+              </button>
+            ) : userProfile?.role === 'student' && mentorshipStatus === 'rejected' ? (
+              <button
+                disabled
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-rose-700 bg-rose-100 border border-rose-200 cursor-not-allowed"
+              >
+                <FiX className="w-3.5 h-3.5" /> Request Rejected
               </button>
             ) : userProfile?.role === 'student' ? (
               <button
