@@ -4,7 +4,7 @@ services:
     name: careersaathi-platform-backend
     env: node
     plan: free
-    rootDir: careersaathi-platform/backend
+    rootDir: alumni-platform/backend
     buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
@@ -36,7 +36,7 @@ services:
   - type: web
     name: careersaathi-platform-frontend
     env: static
-    rootDir: careersaathi-platform/frontend
+    rootDir: alumni-platform/frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
