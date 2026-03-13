@@ -39,6 +39,72 @@ const isQuotaError = (err: any) =>
   (typeof err?.message === 'string' &&
     (err.message.includes('429') || err.message.toLowerCase().includes('quota') || err.message.toLowerCase().includes('rate limit')));
 
+type StudentProfile = {
+  skills?: string[];
+  interests?: string[];
+  goals?: string;
+  branch?: string;
+};
+
+type AlumniProfile = {
+  uid?: string;
+  name?: string;
+  skills?: string[];
+  company?: string;
+  jobRole?: string;
+  experience?: number | string;
+  branch?: string;
+};
+
+const normalize = (value: string): string => value.trim().toLowerCase();
+
+const scoreFallbackMatch = (student: StudentProfile, alumni: AlumniProfile): { score: number; reason: string } => {
+  const studentSkills = new Set((student.skills || []).map(normalize));
+  const studentInterests = (student.interests || []).map(normalize);
+  const goals = normalize(student.goals || '');
+  const branch = normalize(student.branch || '');
+
+  const alumniSkills = (alumni.skills || []).map(normalize);
+  const alumniCompany = normalize(alumni.company || '');
+  const alumniRole = normalize(alumni.jobRole || '');
+  const alumniBranch = normalize(alumni.branch || '');
+
+  let points = 10;
+
+  let sharedSkills = 0;
+  alumniSkills.forEach((skill) => {
+    if (studentSkills.has(skill)) sharedSkills += 1;
+  });
+  points += Math.min(sharedSkills * 15, 45);
+
+  let interestHits = 0;
+  studentInterests.forEach((interest) => {
+    if (interest && (alumniRole.includes(interest) || alumniCompany.includes(interest) || alumniSkills.some(s => s.includes(interest)))) {
+      interestHits += 1;
+    }
+  });
+  points += Math.min(interestHits * 10, 25);
+
+  if (goals && (alumniRole.includes(goals) || alumniSkills.some(s => goals.includes(s) || s.includes(goals)))) {
+    points += 15;
+  }
+
+  if (branch && alumniBranch && branch === alumniBranch) {
+    points += 5;
+  }
+
+  const score = Math.max(5, Math.min(99, points));
+
+  let reason = 'Recommended based on profile compatibility and mentor expertise.';
+  if (sharedSkills > 0) {
+    reason = `Strong skill overlap (${sharedSkills} matched) with relevant mentor experience.`;
+  } else if (interestHits > 0) {
+    reason = 'Good alignment with your interests and mentor domain expertise.';
+  }
+
+  return { score, reason };
+};
+
 // POST /ai/career-guidance - Career guidance chatbot
 router.post('/career-guidance', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -166,12 +232,7 @@ router.post('/mentor-recommend', verifyToken, async (req: AuthRequest, res: Resp
   try {
     const uid = req.user?.uid;
     const userDoc = await db.collection('users').doc(uid!).get();
-    const studentData = userDoc.data() as {
-      skills: string[];
-      interests: string[];
-      goals: string;
-      branch: string;
-    };
+    const studentData = (userDoc.data() || {}) as StudentProfile;
 
     // Get all alumni — only those with active Firebase Auth accounts
     const [alumniSnapshot, validUids] = await Promise.all([
@@ -211,15 +272,59 @@ Only return valid JSON array, no additional text.`;
 
     const responseText = (await generateText(prompt)).trim();
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-    const recommendations = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    let recommendations: Array<{ uid: string; matchScore: number; reason: string }> = [];
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]) as Array<{ uid?: string; matchScore?: number; reason?: string }>;
+        recommendations = parsed
+          .filter(rec => rec.uid)
+          .map(rec => ({
+            uid: String(rec.uid),
+            matchScore: Number.isFinite(rec.matchScore) ? Number(rec.matchScore) : 0,
+            reason: rec.reason || 'Recommended by AI based on your profile.',
+          }));
+      } catch {
+        recommendations = [];
+      }
+    }
 
     // Enrich with full alumni data
     const enriched = recommendations.map((rec: { uid: string; matchScore: number; reason: string }) => {
       const alumniData = alumni.find(a => a.uid === rec.uid);
-      return { ...rec, alumni: alumniData };
+      return {
+        ...rec,
+        matchScore: Math.max(1, Math.min(100, Math.round(rec.matchScore || 0))),
+        alumni: alumniData,
+      };
     }).filter((r: { alumni: unknown }) => r.alumni);
 
-    res.status(200).json({ recommendations: enriched });
+    const uniqueByUid = new Map<string, { uid: string; matchScore: number; reason: string; alumni: AlumniProfile }>();
+    (enriched as Array<{ uid: string; matchScore: number; reason: string; alumni: AlumniProfile }>).forEach((item) => {
+      if (!uniqueByUid.has(item.uid)) uniqueByUid.set(item.uid, item);
+    });
+
+    // If AI returns empty/partial/invalid matches, fill the response with deterministic ranking.
+    if (uniqueByUid.size < 5) {
+      const fallback = alumni
+        .filter((a: AlumniProfile) => a.uid && !uniqueByUid.has(String(a.uid)))
+        .map((a: AlumniProfile) => {
+          const { score, reason } = scoreFallbackMatch(studentData, a);
+          return {
+            uid: String(a.uid),
+            matchScore: score,
+            reason,
+            alumni: a,
+          };
+        })
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 5 - uniqueByUid.size);
+
+      fallback.forEach((item) => uniqueByUid.set(item.uid, item));
+    }
+
+    const finalRecommendations = Array.from(uniqueByUid.values()).slice(0, 5);
+
+    res.status(200).json({ recommendations: finalRecommendations });
   } catch (error) {
     console.error('Mentor recommendation error:', error);
     if (isQuotaError(error)) {
