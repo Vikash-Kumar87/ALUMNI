@@ -27,7 +27,7 @@ const CareerChatbot: React.FC = () => {
     {
       id: '0',
       role: 'assistant',
-      text: "Hi! I'm your AI Career Advisor powered by Groq AI. I can help you with career guidance, learning roadmaps, interview prep, and more. What would you like to explore today?",
+      text: "Hi! I'm your AI Career Advisor. I can help with careers, roadmaps, and interview prep. What would you like to explore today?",
       timestamp: new Date(),
     },
   ]);
@@ -141,7 +141,7 @@ const CareerChatbot: React.FC = () => {
                 </div>
               )}
               <div className={`max-w-[78%] flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                <div className={`px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                   msg.role === 'user'
                     ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm shadow-lg shadow-violet-200/60'
                     : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100/80'
@@ -186,9 +186,9 @@ const CareerChatbot: React.FC = () => {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about careers, skills, roadmaps... (Enter to send)"
+              placeholder="Ask careers, skills, roadmap..."
               rows={1}
-              className="flex-1 px-4 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white transition-all resize-none min-h-[46px] max-h-32 placeholder-gray-400"
+              className="flex-1 px-3 py-2.5 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white transition-all resize-none min-h-[42px] max-h-32 placeholder-gray-400"
               style={{ lineHeight: '1.5' }}
             />
             <button
