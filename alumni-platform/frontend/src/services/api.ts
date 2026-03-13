@@ -261,4 +261,8 @@ export const referralsAPI = {
     apiService.put(`/referrals/${id}/status`, data),
 };
 
+export const leaderboardAPI = {
+  getHelpfulAlumni: () => apiService.get('/leaderboard/helpful-alumni'),
+};
+
 export default apiService;

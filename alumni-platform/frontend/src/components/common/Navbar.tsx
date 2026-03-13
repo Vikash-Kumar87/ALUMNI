@@ -8,7 +8,7 @@ import {
   FiMessageCircle, FiMenu, FiX, FiBell, FiLogOut, FiUser, FiShield, FiAward,
   FiCheck, FiMap, FiUserCheck, FiUserPlus, FiCheckCircle, FiXCircle,
   FiZap, FiMail, FiFileText, FiEdit2, FiBarChart2, FiTarget, FiStar, FiChevronDown, FiCalendar,
-  FiVideo, FiClock
+  FiVideo, FiClock, FiTrendingUp
 } from 'react-icons/fi';
 
 /* ── Notification type config ── */
@@ -123,6 +123,7 @@ const Navbar: React.FC = () => {
         { to: '/mentorship-requests', label: 'Students', icon: FiUserCheck },
         { to: '/events', label: 'Events', icon: FiCalendar },
         { to: '/referrals', label: 'Referrals', icon: FiUserCheck },
+        { to: '/leaderboard', label: 'Leaderboard', icon: FiTrendingUp },
         { to: '/portfolio-showcase', label: 'Portfolios', icon: FiUsers },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Post Jobs', icon: FiBriefcase },
@@ -134,6 +135,7 @@ const Navbar: React.FC = () => {
         { to: '/mentors', label: 'Mentors', icon: FiUsers },
         { to: '/events', label: 'Events', icon: FiCalendar },
         { to: '/referrals', label: 'Referrals', icon: FiUserCheck },
+        { to: '/leaderboard', label: 'Leaderboard', icon: FiTrendingUp },
         { to: '/portfolio-showcase', label: 'Portfolios', icon: FiUsers },
         { to: '/forum', label: 'Forum', icon: FiMessageSquare },
         { to: '/jobs', label: 'Jobs', icon: FiBriefcase },

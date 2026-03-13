@@ -32,6 +32,7 @@ import VideoCallPage from './pages/VideoCallPage';
 import EventsBoard from './pages/EventsBoard';
 import StudentPortfolioShowcase from './pages/StudentPortfolioShowcase';
 import ReferralTrackingPage from './pages/ReferralTrackingPage';
+import HelpfulAlumniLeaderboardPage from './pages/HelpfulAlumniLeaderboardPage';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -169,6 +170,13 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute>
                 <ReferralTrackingPage />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+          <Route path="/leaderboard" element={
+            <AppLayout>
+              <ProtectedRoute>
+                <HelpfulAlumniLeaderboardPage />
               </ProtectedRoute>
             </AppLayout>
           } />

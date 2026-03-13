@@ -320,6 +320,26 @@ export interface ReferralRequest {
   updatedAt: string;
 }
 
+export interface HelpfulAlumniLeaderboardEntry {
+  uid: string;
+  name: string;
+  company?: string;
+  jobRole?: string;
+  avatar?: string;
+  score: number;
+  rank: number;
+  badges: string[];
+  metrics: {
+    mentorshipAccepted: number;
+    discussionAnswers: number;
+    answerUpvotes: number;
+    referralsSuccessful: number;
+    referralsHandled: number;
+    referralJobsPosted: number;
+    eventsHosted: number;
+  };
+}
+
 export interface Notification {
   id: string;
   recipientId: string;
