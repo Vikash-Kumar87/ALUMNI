@@ -128,10 +128,6 @@ const ChatPage: React.FC = () => {
   }, [userProfile?.role]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  useEffect(() => {
     return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); };
   }, []);
 
@@ -221,6 +217,8 @@ const ChatPage: React.FC = () => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     const chatRoomId = [userProfile!.uid, conv.userId].sort().join('_');
     fetchMessages(chatRoomId);
+    // Keep initial UX familiar: on opening a chat, jump to latest once.
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 0);
     pollIntervalRef.current = setInterval(() => fetchMessages(chatRoomId), 2000);
   };
 
