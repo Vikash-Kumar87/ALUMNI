@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { chatAPI, notificationsAPI } from '../services/api';
+import { chatAPI, notificationsAPI, paymentsAPI } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhone, FiCopy,
@@ -43,7 +43,7 @@ const VideoCallPage: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Mentorship video call feature
-  const [mentoredStudents, setMentoredStudents] = useState<Array<{ studentId: string; studentName: string; studentEmail: string }>>([]);
+  const [mentoredStudents, setMentoredStudents] = useState<Array<{ studentId: string; studentName: string; studentEmail: string; sessionsCount: number }>>([]);
   const [invitationSending, setInvitationSending] = useState<string | null>(null);
 
   /* ── Cleanup on unmount ─────────────────────────────────────── */
@@ -72,27 +72,38 @@ const VideoCallPage: React.FC = () => {
 
   /* ── Fetch mentored students (for alumni only) ────────────────── */
   useEffect(() => {
-    const fetchMentoredStudents = async () => {
+    const fetchBookedStudents = async () => {
       try {
         if (userProfile?.role !== 'alumni') return;
-        
-        const response = await chatAPI.getMentorshipRequests();
-        const acceptedRequests = response.data.requests.filter((req: any) => req.status === 'accepted');
-        
-        const students = acceptedRequests.map((req: any) => ({
-          studentId: req.studentId,
-          studentName: req.studentName || 'Unknown Student',
-          studentEmail: req.studentEmail || '',
-        }));
-        
+
+        const response = await paymentsAPI.getMentorSessions();
+        const sessions = (response.data.sessions || []) as Array<{ student_id?: string; student_name?: string }>;
+
+        const byStudent = new Map<string, { studentId: string; studentName: string; studentEmail: string; sessionsCount: number }>();
+        sessions.forEach((s) => {
+          if (!s.student_id) return;
+          const prev = byStudent.get(s.student_id);
+          if (prev) {
+            prev.sessionsCount += 1;
+          } else {
+            byStudent.set(s.student_id, {
+              studentId: s.student_id,
+              studentName: s.student_name || 'Unknown Student',
+              studentEmail: '',
+              sessionsCount: 1,
+            });
+          }
+        });
+
+        const students = Array.from(byStudent.values());
         setMentoredStudents(students);
       } catch (err) {
-        console.error('Failed to fetch mentored students:', err);
+        console.error('Failed to fetch booked students:', err);
       }
     };
-    
+
     if (userProfile?.role === 'alumni') {
-      fetchMentoredStudents();
+      fetchBookedStudents();
     }
   }, [userProfile?.role]);
 
@@ -426,7 +437,7 @@ const VideoCallPage: React.FC = () => {
                 >
                   <div className="mb-4 flex items-center gap-2 px-4">
                     <FiUsers className="w-4 h-4 text-indigo-300" />
-                    <h3 className="text-sm font-semibold text-white/80">Your Mentees</h3>
+                    <h3 className="text-sm font-semibold text-white/80">Booked Students</h3>
                   </div>
                   
                   <div className="space-y-2">
@@ -440,7 +451,9 @@ const VideoCallPage: React.FC = () => {
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-white truncate">{student.studentName}</p>
-                          <p className="text-xs text-white/40 truncate">{student.studentEmail}</p>
+                          <p className="text-xs text-white/40 truncate">
+                            {student.sessionsCount} booking{student.sessionsCount > 1 ? 's' : ''}
+                          </p>
                         </div>
                         <button
                           onClick={() => sendVideoCallInvitation(student.studentId)}
@@ -455,7 +468,7 @@ const VideoCallPage: React.FC = () => {
                           ) : (
                             <>
                               <FiSend className="w-3 h-3" />
-                              Send
+                              Send Invite
                             </>
                           )}
                         </button>
