@@ -7,7 +7,7 @@
  */
 
 // Render backend URL — hardcoded so ping works even if env var changes
-const RENDER_HEALTH_URL = 'https://careersaathi-platform-backend-xfi0.onrender.com/health';
+const RENDER_HEALTH_URL = 'https://alumni-platform-backend-xfi0.onrender.com/health';
 
 const PING_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
 

@@ -197,8 +197,6 @@ const ChatPage: React.FC = () => {
         setBookingLockBadge({ label: 'Booking locked: send mentorship request first', tone: 'locked' });
       } else if (status === 'pending') {
         setBookingLockBadge({ label: 'Booking locked: waiting for mentor acceptance', tone: 'neutral' });
-      } else if (status === 'accepted' && !alumniUser?.price_per_session) {
-        setBookingLockBadge({ label: 'Mentorship accepted: waiting for mentor price', tone: 'neutral' });
       } else if (status === 'accepted' && alumniUser?.price_per_session) {
         setBookingLockBadge({ label: 'Booking available for this mentor', tone: 'open' });
       } else if (status === 'rejected') {

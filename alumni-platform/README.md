@@ -37,7 +37,7 @@ A full-stack web application that bridges the gap between alumni and students th
 ## Project Structure
 
 ```
-careersaathi-platform/
+alumni-platform/
 ├── backend/                  # Node.js + Express API
 │   ├── src/
 │   │   ├── config/firebase.ts

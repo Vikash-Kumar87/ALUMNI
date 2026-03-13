@@ -1,7 +1,7 @@
 services:
   # ── Backend: Node.js Web Service ─────────────────────────────────────────────
   - type: web
-    name: careersaathi-platform-backend
+    name: alumni-platform-backend
     env: node
     plan: free
     rootDir: alumni-platform/backend
@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       # Set this to your frontend Render URL after frontend is deployed
-      # e.g. https://careersaathi-platform-frontend.onrender.com
+      # e.g. https://alumni-platform-frontend.onrender.com
       - key: FRONTEND_URL
         sync: false
       # ── Firebase Admin SDK ──────────────────────────────────────────────────
@@ -34,7 +34,7 @@ services:
 
   # ── Frontend: Static Site ─────────────────────────────────────────────────
   - type: web
-    name: careersaathi-platform-frontend
+    name: alumni-platform-frontend
     env: static
     rootDir: alumni-platform/frontend
     buildCommand: npm install && npm run build
@@ -46,7 +46,7 @@ services:
         destination: /index.html
     envVars:
       # Set this to your backend Render URL + /api
-      # e.g. https://careersaathi-platform-backend.onrender.com/api
+      # e.g. https://alumni-platform-backend.onrender.com/api
       - key: VITE_API_BASE_URL
         sync: false
       # ── Firebase Client SDK ──────────────────────────────────────────────────
