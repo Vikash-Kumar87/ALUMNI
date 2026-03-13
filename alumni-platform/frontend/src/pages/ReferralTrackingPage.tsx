@@ -32,6 +32,18 @@ const statusStyle: Record<ReferralStatus, { label: string; cls: string }> = {
 
 const alumniStatuses: ReferralStatus[] = ['in_review', 'referred', 'interview', 'offered', 'rejected', 'joined'];
 
+const statusOrder: ReferralStatus[] = ['requested', 'in_review', 'referred', 'interview', 'offered', 'joined', 'rejected'];
+
+const statusProgressValue: Record<ReferralStatus, number> = {
+  requested: 12,
+  in_review: 30,
+  referred: 50,
+  interview: 70,
+  offered: 92,
+  joined: 100,
+  rejected: 100,
+};
+
 const ReferralTrackingPage: React.FC = () => {
   const { userProfile } = useAuth();
   const role = userProfile?.role;
@@ -86,6 +98,63 @@ const ReferralTrackingPage: React.FC = () => {
     if (statusFilter === 'all') return mine;
     return mine.filter(r => r.status === statusFilter);
   }, [mine, statusFilter]);
+
+  const analytics = useMemo(() => {
+    const all = mine;
+    const total = all.length;
+
+    const statusCounts = statusOrder.reduce((acc, s) => {
+      acc[s] = all.filter(item => item.status === s).length;
+      return acc;
+    }, {} as Record<ReferralStatus, number>);
+
+    const successful = all.filter(item => item.status === 'offered' || item.status === 'joined').length;
+    const conversionRate = total > 0 ? Math.round((successful / total) * 100) : 0;
+
+    const responseDurations = all
+      .map(item => {
+        const timeline = (item.timeline || []).slice().sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+        const requestedAt = timeline.find(t => t.status === 'requested')?.at;
+        const firstActionAt = timeline.find(t => t.status !== 'requested')?.at;
+        if (!requestedAt || !firstActionAt) return null;
+
+        const diffMs = new Date(firstActionAt).getTime() - new Date(requestedAt).getTime();
+        if (diffMs < 0) return null;
+        return diffMs / (1000 * 60 * 60);
+      })
+      .filter((x): x is number => x !== null);
+
+    const avgResponseHours = responseDurations.length > 0
+      ? Math.round(responseDurations.reduce((a, b) => a + b, 0) / responseDurations.length)
+      : 0;
+
+    const companyMap = new Map<string, { total: number; successful: number }>();
+    all.forEach(item => {
+      const key = item.company || 'Unknown';
+      const prev = companyMap.get(key) || { total: 0, successful: 0 };
+      prev.total += 1;
+      if (item.status === 'offered' || item.status === 'joined') prev.successful += 1;
+      companyMap.set(key, prev);
+    });
+
+    const companyBreakdown = Array.from(companyMap.entries())
+      .map(([company, data]) => ({
+        company,
+        ...data,
+        rate: data.total > 0 ? Math.round((data.successful / data.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.rate - a.rate || b.total - a.total)
+      .slice(0, 6);
+
+    return {
+      total,
+      successful,
+      conversionRate,
+      avgResponseHours,
+      statusCounts,
+      companyBreakdown,
+    };
+  }, [mine]);
 
   const submitRequest = async () => {
     if (!selectedJobId) {
@@ -206,6 +275,106 @@ const ReferralTrackingPage: React.FC = () => {
               <FiSend className="w-4 h-4" />
               {creating ? 'Sending...' : 'Send Request'}
             </button>
+          </motion.section>
+        )}
+
+        {!loading && mine.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="mb-7 grid grid-cols-1 xl:grid-cols-3 gap-5"
+          >
+            <div className="xl:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-black text-slate-900">Referral Funnel</h3>
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Pipeline Health</span>
+              </div>
+
+              <div className="space-y-3">
+                {statusOrder.map(status => {
+                  const count = analytics.statusCounts[status] || 0;
+                  const width = analytics.total > 0 ? Math.max(6, Math.round((count / analytics.total) * 100)) : 0;
+                  return (
+                    <div key={status}>
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="font-semibold text-slate-600">{statusStyle[status].label}</span>
+                        <span className="text-slate-500">{count}</span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${width}%` }}
+                          transition={{ duration: 0.55 }}
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-lg">
+              <h3 className="text-xl font-black text-slate-900">Insights</h3>
+              <div className="mt-4 space-y-3">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400 font-bold">Conversion</p>
+                  <p className="mt-1 text-3xl font-black text-slate-900">{analytics.conversionRate}%</p>
+                  <p className="text-xs text-slate-500">{analytics.successful} successful out of {analytics.total}</p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400 font-bold">Avg First Response</p>
+                  <p className="mt-1 text-3xl font-black text-slate-900">{analytics.avgResponseHours}h</p>
+                  <p className="text-xs text-slate-500">Time from request to first action</p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400 font-bold">Momentum Score</p>
+                  <p className="mt-1 text-3xl font-black text-slate-900">
+                    {Math.round(
+                      mine.reduce((sum, item) => sum + (statusProgressValue[item.status] || 0), 0) / Math.max(mine.length, 1)
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-500">Average stage progress across pipeline</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="xl:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-lg">
+              <h3 className="text-xl font-black text-slate-900">Company-wise Success</h3>
+              <p className="text-sm text-slate-500 mt-1">Top companies ranked by offer/join conversion.</p>
+
+              {analytics.companyBreakdown.length === 0 ? (
+                <p className="mt-4 text-sm text-slate-500">Not enough data yet.</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {analytics.companyBreakdown.map(row => (
+                    <div key={row.company} className="rounded-2xl border border-slate-200 p-3.5">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FiBriefcase className="w-4 h-4 text-slate-500" />
+                          <p className="font-semibold text-slate-800 truncate">{row.company}</p>
+                        </div>
+                        <p className="text-sm font-bold text-slate-700">{row.rate}%</p>
+                      </div>
+
+                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.max(4, row.rate)}%` }}
+                          transition={{ duration: 0.5 }}
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                        />
+                      </div>
+
+                      <p className="mt-1.5 text-xs text-slate-500">{row.successful} successful out of {row.total} requests</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.section>
         )}
 
