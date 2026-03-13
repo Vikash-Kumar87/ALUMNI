@@ -245,7 +245,7 @@ const Navbar: React.FC = () => {
                   </div>
                 )}
 
-                {/* AI Tools dropdown � students only */}
+                {/* AI Tools dropdown - students only */}
                 {userProfile?.role === 'student' && (
                   <div className="relative" ref={toolsRef}>
                     <button
@@ -476,7 +476,7 @@ const Navbar: React.FC = () => {
                                   style={userProfile?.role === 'alumni'
                                     ? { background: 'rgba(236,253,245,1)', color: '#059669' }
                                     : { background: 'rgba(238,242,255,1)', color: '#4f46e5' }}>
-                                  {userProfile?.role === 'alumni' ? '?? Alumni' : '?? Student'}
+                                  {userProfile?.role === 'alumni' ? 'Alumni' : 'Student'}
                                 </span>
                               </div>
                             </div>

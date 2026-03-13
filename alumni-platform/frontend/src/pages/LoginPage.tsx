@@ -94,7 +94,7 @@ const LoginPage: React.FC = () => {
           <div className="login-slide-in flex items-center gap-3" style={{ animationDelay: '0ms' }}>
             <div className="w-11 h-11 rounded-2xl flex items-center justify-center border border-white/30 backdrop-blur-sm"
               style={{ background: 'rgba(255,255,255,0.18)' }}>
-              <span className="text-xl">??</span>
+              <span className="text-xl">ðŸŽ“</span>
             </div>
             <span className="font-bold text-xl text-white tracking-tight">CareerSaathi</span>
           </div>
@@ -104,7 +104,7 @@ const LoginPage: React.FC = () => {
             <div className="login-fade-up mb-3" style={{ animationDelay: '100ms' }}>
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
                 style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}>
-                ? Your career starts here
+                Your career starts here
               </span>
             </div>
             <h2 className="login-fade-up text-5xl font-extrabold text-white leading-[1.12] mb-5 tracking-tight"
@@ -115,7 +115,7 @@ const LoginPage: React.FC = () => {
               </span>
             </h2>
             <p className="login-fade-up text-indigo-200 text-lg leading-relaxed mb-10" style={{ animationDelay: '260ms' }}>
-              Connect with mentors, practice interviews, discover opportunities — all in one place.
+              Connect with mentors, practice interviews, discover opportunities, all in one place.
             </p>
 
             {/* Feature cards */}
@@ -170,7 +170,7 @@ const LoginPage: React.FC = () => {
             <Link to="/" className="inline-flex items-center gap-2.5">
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
                 style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)' }}>
-                <span className="text-xl">??</span>
+                <span className="text-xl">ðŸŽ“</span>
               </div>
               <span className="text-xl font-bold text-gray-900">CareerSaathi</span>
             </Link>
@@ -221,7 +221,7 @@ const LoginPage: React.FC = () => {
                 <div className="relative">
                   <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
                   <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-                    className="login-input pr-11" placeholder="••••••••" autoComplete="current-password" required />
+                    className="login-input pr-11" placeholder="Enter password" autoComplete="current-password" required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 p-1 rounded-lg transition-colors">
                     {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
