@@ -30,6 +30,7 @@ import SkillGapAnalyzer from './pages/SkillGapAnalyzer';
 import SuccessStoryGenerator from './pages/SuccessStoryGenerator';
 import VideoCallPage from './pages/VideoCallPage';
 import EventsBoard from './pages/EventsBoard';
+import StudentPortfolioShowcase from './pages/StudentPortfolioShowcase';
 
 /** Layout wrapper that renders the Navbar except on public-only pages */
 const AppLayout: React.FC<{ showNav?: boolean; children: React.ReactNode }> = ({ showNav = true, children }) => (
@@ -153,6 +154,13 @@ const App: React.FC = () => {
             <AppLayout>
               <ProtectedRoute>
                 <EventsBoard />
+              </ProtectedRoute>
+            </AppLayout>
+          } />
+          <Route path="/portfolio-showcase" element={
+            <AppLayout>
+              <ProtectedRoute>
+                <StudentPortfolioShowcase />
               </ProtectedRoute>
             </AppLayout>
           } />

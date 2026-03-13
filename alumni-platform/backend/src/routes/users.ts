@@ -63,6 +63,125 @@ router.get('/list', verifyToken, async (_req: AuthRequest, res: Response): Promi
   }
 });
 
+// GET /users/student-portfolios - Public student portfolio showcase (plus own private draft)
+router.get('/student-portfolios', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const currentUid = req.user?.uid;
+    const snapshot = await db.collection('users').where('role', '==', 'student').get();
+
+    const portfolios = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          uid: data.uid,
+          name: data.name,
+          email: data.email,
+          avatar: data.avatar || null,
+          branch: data.branch || null,
+          year: data.year || null,
+          skills: data.skills || [],
+          bio: data.bio || '',
+          portfolio: data.portfolio || null,
+          updatedAt: data.updatedAt || data.createdAt,
+        };
+      })
+      .filter(user => {
+        if (!user.portfolio) return false;
+        if (user.uid === currentUid) return true;
+        return Boolean(user.portfolio?.isPublic);
+      })
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    res.status(200).json({ portfolios });
+  } catch (error) {
+    console.error('Get student portfolios error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /users/:uid/portfolio - Update student portfolio
+router.put('/:uid/portfolio', verifyToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { uid } = req.params;
+
+    if (req.user?.uid !== uid) {
+      res.status(403).json({ error: 'Forbidden: Cannot update another user\'s portfolio' });
+      return;
+    }
+
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const userData = userDoc.data();
+    if (userData?.role !== 'student') {
+      res.status(403).json({ error: 'Only students can manage a student portfolio' });
+      return;
+    }
+
+    const {
+      headline,
+      about,
+      github,
+      linkedin,
+      website,
+      highlights,
+      achievements,
+      projects,
+      isPublic,
+    } = req.body;
+
+    const now = new Date().toISOString();
+    const existingPortfolio = userData?.portfolio || {};
+
+    const portfolio = {
+      headline: typeof headline === 'string' ? headline.trim().slice(0, 120) : '',
+      about: typeof about === 'string' ? about.trim().slice(0, 1200) : '',
+      github: typeof github === 'string' ? github.trim() : '',
+      linkedin: typeof linkedin === 'string' ? linkedin.trim() : '',
+      website: typeof website === 'string' ? website.trim() : '',
+      highlights: Array.isArray(highlights)
+        ? highlights.filter((h: unknown) => typeof h === 'string' && h.trim()).slice(0, 8)
+        : [],
+      achievements: Array.isArray(achievements)
+        ? achievements.filter((a: unknown) => typeof a === 'string' && a.trim()).slice(0, 10)
+        : [],
+      projects: Array.isArray(projects)
+        ? (projects as Array<Record<string, unknown>>)
+            .filter((p: unknown) => typeof p === 'object' && p !== null)
+            .map((p: Record<string, unknown>) => ({
+              title: typeof p.title === 'string' ? p.title.trim().slice(0, 100) : '',
+              description: typeof p.description === 'string' ? p.description.trim().slice(0, 400) : '',
+              techStack: Array.isArray(p.techStack)
+                ? p.techStack.filter((t: unknown) => typeof t === 'string' && t.trim()).slice(0, 10)
+                : [],
+              projectUrl: typeof p.projectUrl === 'string' ? p.projectUrl.trim() : '',
+            }))
+            .filter((p: { title: string }) => p.title)
+            .slice(0, 6)
+        : [],
+      isPublic: Boolean(isPublic),
+      createdAt: existingPortfolio.createdAt || now,
+      updatedAt: now,
+    };
+
+    await userRef.update({
+      portfolio,
+      updatedAt: now,
+    });
+
+    const updatedDoc = await userRef.get();
+    res.status(200).json({ message: 'Portfolio updated successfully', user: updatedDoc.data() });
+  } catch (error) {
+    console.error('Update student portfolio error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /users/stats - Get platform statistics (only real Auth users)
 router.get('/stats', verifyToken, async (_req: AuthRequest, res: Response): Promise<void> => {
   try {

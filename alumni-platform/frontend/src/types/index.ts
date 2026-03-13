@@ -1,4 +1,25 @@
 // ===== User Types =====
+export interface PortfolioProject {
+  title: string;
+  description: string;
+  techStack: string[];
+  projectUrl?: string;
+}
+
+export interface StudentPortfolio {
+  headline: string;
+  about: string;
+  github?: string;
+  linkedin?: string;
+  website?: string;
+  highlights: string[];
+  achievements: string[];
+  projects: PortfolioProject[];
+  isPublic: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface User {
   uid: string;
   name: string;
@@ -28,6 +49,7 @@ export interface User {
     messages?: boolean;
     mentorship?: boolean;
   };
+  portfolio?: StudentPortfolio;
 }
 
 // ===== Paid Session Types =====

@@ -87,6 +87,12 @@ export const usersAPI = {
   cleanupOrphans: () => apiService.post('/users/cleanup-orphans', {}),
 };
 
+export const portfolioAPI = {
+  getShowcase: () => apiService.get('/users/student-portfolios'),
+  updateMyPortfolio: (uid: string, data: unknown) =>
+    apiService.put(`/users/${uid}/portfolio`, data),
+};
+
 export const mentorsAPI = {
   getAll: (params?: { skill?: string; search?: string }) =>
     apiService.get('/mentors', { params }),
